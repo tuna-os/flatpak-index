@@ -60,6 +60,36 @@
           }
         }
       ]
+    },
+    {
+      "Name": "hanthor/decks-rust",
+      "Images": [
+        {
+          "Digest": "sha256:bd324e9efc1ec1412b669eee6f67b8c2e48de0df477f2350eed05d3be06bfec1",
+          "MediaType": "application/vnd.oci.image.manifest.v1+json",
+          "OS": "linux",
+          "Architecture": "amd64",
+          "Tags": [
+            "latest"
+          ],
+          "Labels": {
+            "org.flatpak.body": "Name: org.tunaos.decks-rust\nArch: x86_64\nBranch: master\nBuilt with: Flatpak 1.18.1\n",
+            "org.flatpak.commit-metadata.xa.metadata": "W0FwcGxpY2F0aW9uXQpuYW1lPW9yZy50dW5hb3MuZGVja3MtcnVzdApydW50aW1lPW9yZy5nbm9tZS5QbGF0Zm9ybS94ODZfNjQvNTAKc2RrPW9yZy5nbm9tZS5TZGsveDg2XzY0LzUwCmNvbW1hbmQ9ZGVja3MKCltDb250ZXh0XQpzaGFyZWQ9aXBjOwpzb2NrZXRzPWZhbGxiYWNrLXgxMTt3YXlsYW5kOwpkZXZpY2VzPWRyaTsKZmlsZXN5c3RlbXM9aG9tZTsKCltFeHRlbnNpb24gb3JnLnR1bmFvcy5kZWNrc19ydXN0LkRlYnVnXQpkaXJlY3Rvcnk9bGliL2RlYnVnCmF1dG9kZWxldGU9dHJ1ZQpuby1hdXRvZG93bmxvYWQ9dHJ1ZQoKW0J1aWxkXQpidWlsdC1leHRlbnNpb25zPW9yZy50dW5hb3MuZGVja3NfcnVzdC5EZWJ1ZzsAAHM=",
+            "org.flatpak.commit-metadata.ostree.collection-binding": "AABz",
+            "org.flatpak.metadata": "[Application]\nname=org.tunaos.decks-rust\nruntime=org.gnome.Platform/x86_64/50\nsdk=org.gnome.Sdk/x86_64/50\ncommand=decks\n\n[Context]\nshared=ipc;\nsockets=fallback-x11;wayland;\ndevices=dri;\nfilesystems=home;\n\n[Extension org.tunaos.decks_rust.Debug]\ndirectory=lib/debug\nautodelete=true\nno-autodownload=true\n\n[Build]\nbuilt-extensions=org.tunaos.decks_rust.Debug;",
+            "org.flatpak.installed-size": "469504",
+            "org.flatpak.commit-metadata.xa.download-size": "AAAAAAADPKgAdA==",
+            "org.flatpak.commit-metadata.xa.installed-size": "AAAAAAAHKgAAdA==",
+            "org.flatpak.download-size": "212862",
+            "org.flatpak.commit-metadata.ostree.ref-binding": "YXBwL29yZy50dW5hb3MuZGVja3MtcnVzdC94ODZfNjQvbWFzdGVyACgAYXM=",
+            "org.flatpak.commit-metadata.xa.ref": "YXBwL29yZy50dW5hb3MuZGVja3MtcnVzdC94ODZfNjQvbWFzdGVyAABz",
+            "org.flatpak.ref": "app/org.tunaos.decks-rust/x86_64/master",
+            "org.flatpak.subject": "Built from 60b5aba7a21f18aecf96cb1cc24346ff5d7cdf2b",
+            "org.flatpak.commit": "6376c3cb377a68185b058c45df35d4ce585ed09596a122315e27c17658471e84",
+            "org.flatpak.timestamp": "1782191046"
+          }
+        }
+      ]
     }
   ]
 }
