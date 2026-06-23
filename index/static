@@ -1,4 +1,35 @@
 {
   "Registry": "https://ghcr.io",
-  "Results": []
+  "Results": [
+    {
+      "Name": "hanthor/letters-rust",
+      "Images": [
+        {
+          "Digest": "sha256:2545a474c5b0b679fd9ea8e4e27d31eeb19908401e7dae209314419e2a37da16",
+          "MediaType": "application/vnd.oci.image.manifest.v1+json",
+          "OS": "linux",
+          "Architecture": "amd64",
+          "Tags": [
+            "latest"
+          ],
+          "Labels": {
+            "org.flatpak.body": "Name: org.tunaos.letters-rust\nArch: x86_64\nBranch: master\nBuilt with: Flatpak 1.18.1\n",
+            "org.flatpak.commit-metadata.xa.metadata": "W0FwcGxpY2F0aW9uXQpuYW1lPW9yZy50dW5hb3MubGV0dGVycy1ydXN0CnJ1bnRpbWU9b3JnLmdub21lLlBsYXRmb3JtL3g4Nl82NC81MApzZGs9b3JnLmdub21lLlNkay94ODZfNjQvNTAKY29tbWFuZD1sZXR0ZXJzCgpbQ29udGV4dF0Kc2hhcmVkPWlwYzsKc29ja2V0cz1mYWxsYmFjay14MTE7d2F5bGFuZDsKZGV2aWNlcz1kcmk7CmZpbGVzeXN0ZW1zPWhvbWU7CgpbRXh0ZW5zaW9uIG9yZy50dW5hb3MubGV0dGVyc19ydXN0LkRlYnVnXQpkaXJlY3Rvcnk9bGliL2RlYnVnCmF1dG9kZWxldGU9dHJ1ZQpuby1hdXRvZG93bmxvYWQ9dHJ1ZQoKW0J1aWxkXQpidWlsdC1leHRlbnNpb25zPW9yZy50dW5hb3MubGV0dGVyc19ydXN0LkRlYnVnOwAAcw==",
+            "org.flatpak.commit-metadata.ostree.collection-binding": "AABz",
+            "org.flatpak.metadata": "[Application]\nname=org.tunaos.letters-rust\nruntime=org.gnome.Platform/x86_64/50\nsdk=org.gnome.Sdk/x86_64/50\ncommand=letters\n\n[Context]\nshared=ipc;\nsockets=fallback-x11;wayland;\ndevices=dri;\nfilesystems=home;\n\n[Extension org.tunaos.letters_rust.Debug]\ndirectory=lib/debug\nautodelete=true\nno-autodownload=true\n\n[Build]\nbuilt-extensions=org.tunaos.letters_rust.Debug;",
+            "org.flatpak.installed-size": "491008",
+            "org.flatpak.commit-metadata.xa.download-size": "AAAAAAADTcQAdA==",
+            "org.flatpak.commit-metadata.xa.installed-size": "AAAAAAAHfgAAdA==",
+            "org.flatpak.download-size": "217148",
+            "org.flatpak.commit-metadata.ostree.ref-binding": "YXBwL29yZy50dW5hb3MubGV0dGVycy1ydXN0L3g4Nl82NC9tYXN0ZXIAKgBhcw==",
+            "org.flatpak.commit-metadata.xa.ref": "YXBwL29yZy50dW5hb3MubGV0dGVycy1ydXN0L3g4Nl82NC9tYXN0ZXIAAHM=",
+            "org.flatpak.ref": "app/org.tunaos.letters-rust/x86_64/master",
+            "org.flatpak.subject": "Built from 60b5aba7a21f18aecf96cb1cc24346ff5d7cdf2b",
+            "org.flatpak.commit": "1bf351fa8154d0fdc2de435b4692d72b02a062ebcad9a7bf201eea4681d7e67e",
+            "org.flatpak.timestamp": "1782191032"
+          }
+        }
+      ]
+    }
+  ]
 }
