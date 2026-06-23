@@ -65,7 +65,7 @@
       "Name": "tuna-os/decks-rust",
       "Images": [
         {
-          "Digest": "sha256:3adb670aaf4bd4debd26cafbb644fb696fda5b7b413b547adec2bfd33e577267",
+          "Digest": "sha256:f7ab6355dfbe76d64e5cbee2a9ea86348a9cf184c357d21ac186746359d292d2",
           "MediaType": "application/vnd.oci.image.manifest.v1+json",
           "OS": "linux",
           "Architecture": "amd64",
@@ -78,15 +78,15 @@
             "org.flatpak.commit-metadata.ostree.collection-binding": "AABz",
             "org.flatpak.metadata": "[Application]\nname=org.tunaos.decks-rust\nruntime=org.gnome.Platform/x86_64/50\nsdk=org.gnome.Sdk/x86_64/50\ncommand=decks\n\n[Context]\nshared=ipc;\nsockets=fallback-x11;wayland;\ndevices=dri;\nfilesystems=home;\n\n[Extension org.tunaos.decks_rust.Debug]\ndirectory=lib/debug\nautodelete=true\nno-autodownload=true\n\n[Build]\nbuilt-extensions=org.tunaos.decks_rust.Debug;",
             "org.flatpak.installed-size": "469504",
-            "org.flatpak.commit-metadata.xa.download-size": "AAAAAAADPKcAdA==",
+            "org.flatpak.commit-metadata.xa.download-size": "AAAAAAADPKgAdA==",
             "org.flatpak.commit-metadata.xa.installed-size": "AAAAAAAHKgAAdA==",
-            "org.flatpak.download-size": "212863",
+            "org.flatpak.download-size": "212864",
             "org.flatpak.commit-metadata.ostree.ref-binding": "YXBwL29yZy50dW5hb3MuZGVja3MtcnVzdC94ODZfNjQvbWFzdGVyACgAYXM=",
             "org.flatpak.commit-metadata.xa.ref": "YXBwL29yZy50dW5hb3MuZGVja3MtcnVzdC94ODZfNjQvbWFzdGVyAABz",
             "org.flatpak.ref": "app/org.tunaos.decks-rust/x86_64/master",
-            "org.flatpak.subject": "Built from 60b5aba7a21f18aecf96cb1cc24346ff5d7cdf2b",
-            "org.flatpak.commit": "f5b7fd17f0436f8b3d1b9d1d865c63142a571f672fb163d4ed1697367079ebcd",
-            "org.flatpak.timestamp": "1782191106"
+            "org.flatpak.subject": "Built from 89849b4077feaf7217b0283bfa7f3de681f64439",
+            "org.flatpak.commit": "8121c36848b39ef17203e97bb598eeb159911b23498689cbc87c3c50622f79d9",
+            "org.flatpak.timestamp": "1782192462"
           }
         }
       ]
