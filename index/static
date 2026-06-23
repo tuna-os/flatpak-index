@@ -30,6 +30,36 @@
           }
         }
       ]
+    },
+    {
+      "Name": "hanthor/tables-rust",
+      "Images": [
+        {
+          "Digest": "sha256:d7f8ff6749203106ab35eed668be885b930c400de5236b16fad5e4339a942887",
+          "MediaType": "application/vnd.oci.image.manifest.v1+json",
+          "OS": "linux",
+          "Architecture": "amd64",
+          "Tags": [
+            "latest"
+          ],
+          "Labels": {
+            "org.flatpak.body": "Name: org.tunaos.tables-rust\nArch: x86_64\nBranch: master\nBuilt with: Flatpak 1.18.1\n",
+            "org.flatpak.commit-metadata.xa.metadata": "W0FwcGxpY2F0aW9uXQpuYW1lPW9yZy50dW5hb3MudGFibGVzLXJ1c3QKcnVudGltZT1vcmcuZ25vbWUuUGxhdGZvcm0veDg2XzY0LzUwCnNkaz1vcmcuZ25vbWUuU2RrL3g4Nl82NC81MApjb21tYW5kPXRhYmxlcwoKW0NvbnRleHRdCnNoYXJlZD1pcGM7CnNvY2tldHM9ZmFsbGJhY2steDExO3dheWxhbmQ7CmRldmljZXM9ZHJpOwpmaWxlc3lzdGVtcz1ob21lOwoKW0V4dGVuc2lvbiBvcmcudHVuYW9zLnRhYmxlc19ydXN0LkRlYnVnXQpkaXJlY3Rvcnk9bGliL2RlYnVnCmF1dG9kZWxldGU9dHJ1ZQpuby1hdXRvZG93bmxvYWQ9dHJ1ZQoKW0J1aWxkXQpidWlsdC1leHRlbnNpb25zPW9yZy50dW5hb3MudGFibGVzX3J1c3QuRGVidWc7AABz",
+            "org.flatpak.commit-metadata.ostree.collection-binding": "AABz",
+            "org.flatpak.metadata": "[Application]\nname=org.tunaos.tables-rust\nruntime=org.gnome.Platform/x86_64/50\nsdk=org.gnome.Sdk/x86_64/50\ncommand=tables\n\n[Context]\nshared=ipc;\nsockets=fallback-x11;wayland;\ndevices=dri;\nfilesystems=home;\n\n[Extension org.tunaos.tables_rust.Debug]\ndirectory=lib/debug\nautodelete=true\nno-autodownload=true\n\n[Build]\nbuilt-extensions=org.tunaos.tables_rust.Debug;",
+            "org.flatpak.installed-size": "2458624",
+            "org.flatpak.commit-metadata.xa.download-size": "AAAAAAART1YAdA==",
+            "org.flatpak.commit-metadata.xa.installed-size": "AAAAAAAlhAAAdA==",
+            "org.flatpak.download-size": "1135510",
+            "org.flatpak.commit-metadata.ostree.ref-binding": "YXBwL29yZy50dW5hb3MudGFibGVzLXJ1c3QveDg2XzY0L21hc3RlcgApAGFz",
+            "org.flatpak.commit-metadata.xa.ref": "YXBwL29yZy50dW5hb3MudGFibGVzLXJ1c3QveDg2XzY0L21hc3RlcgAAcw==",
+            "org.flatpak.ref": "app/org.tunaos.tables-rust/x86_64/master",
+            "org.flatpak.subject": "Built from 60b5aba7a21f18aecf96cb1cc24346ff5d7cdf2b",
+            "org.flatpak.commit": "586ba7ce18996b9757aa6d26c06225809b2ed288a1562678b2584c97a4eb9089",
+            "org.flatpak.timestamp": "1782191038"
+          }
+        }
+      ]
     }
   ]
 }
