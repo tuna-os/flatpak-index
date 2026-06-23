@@ -65,7 +65,7 @@
       "Name": "tuna-os/decks-rust",
       "Images": [
         {
-          "Digest": "sha256:f7ab6355dfbe76d64e5cbee2a9ea86348a9cf184c357d21ac186746359d292d2",
+          "Digest": "sha256:8f784885ba8ed29dfaebc9afe0cb53f529eb373fb43d31d5558b79520c735d72",
           "MediaType": "application/vnd.oci.image.manifest.v1+json",
           "OS": "linux",
           "Architecture": "amd64",
@@ -80,13 +80,13 @@
             "org.flatpak.installed-size": "469504",
             "org.flatpak.commit-metadata.xa.download-size": "AAAAAAADPKgAdA==",
             "org.flatpak.commit-metadata.xa.installed-size": "AAAAAAAHKgAAdA==",
-            "org.flatpak.download-size": "212864",
+            "org.flatpak.download-size": "212866",
             "org.flatpak.commit-metadata.ostree.ref-binding": "YXBwL29yZy50dW5hb3MuZGVja3MtcnVzdC94ODZfNjQvbWFzdGVyACgAYXM=",
             "org.flatpak.commit-metadata.xa.ref": "YXBwL29yZy50dW5hb3MuZGVja3MtcnVzdC94ODZfNjQvbWFzdGVyAABz",
             "org.flatpak.ref": "app/org.tunaos.decks-rust/x86_64/master",
             "org.flatpak.subject": "Built from 89849b4077feaf7217b0283bfa7f3de681f64439",
-            "org.flatpak.commit": "8121c36848b39ef17203e97bb598eeb159911b23498689cbc87c3c50622f79d9",
-            "org.flatpak.timestamp": "1782192462"
+            "org.flatpak.commit": "6189965fd834acdff1c1fb48ccd52e08e91a786eb63ea3aae351f8838cff1acf",
+            "org.flatpak.timestamp": "1782192540"
           }
         }
       ]
