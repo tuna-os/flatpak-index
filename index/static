@@ -5,7 +5,7 @@
       "Name": "tuna-os/letters-rust",
       "Images": [
         {
-          "Digest": "sha256:82024662f49755dde8eb055c3fdf749fa9157e0cdbe48bcd28336d156d9a205d",
+          "Digest": "sha256:ef664e08e3beae2cbdf0ae12926aa1ebf311a0406ddca5b2ea3ca7af2cff73ea",
           "MediaType": "application/vnd.oci.image.manifest.v1+json",
           "OS": "linux",
           "Architecture": "amd64",
@@ -20,13 +20,13 @@
             "org.flatpak.installed-size": "491008",
             "org.flatpak.commit-metadata.xa.download-size": "AAAAAAADTcQAdA==",
             "org.flatpak.commit-metadata.xa.installed-size": "AAAAAAAHfgAAdA==",
-            "org.flatpak.download-size": "217142",
+            "org.flatpak.download-size": "217145",
             "org.flatpak.commit-metadata.ostree.ref-binding": "YXBwL29yZy50dW5hb3MubGV0dGVycy1ydXN0L3g4Nl82NC9tYXN0ZXIAKgBhcw==",
             "org.flatpak.commit-metadata.xa.ref": "YXBwL29yZy50dW5hb3MubGV0dGVycy1ydXN0L3g4Nl82NC9tYXN0ZXIAAHM=",
             "org.flatpak.ref": "app/org.tunaos.letters-rust/x86_64/master",
             "org.flatpak.subject": "Built from 89849b4077feaf7217b0283bfa7f3de681f64439",
-            "org.flatpak.commit": "df887e041cc3922e5ede3e2d48c923a44a30bc00ec5f1b5678bfe87b98728f95",
-            "org.flatpak.timestamp": "1782192267"
+            "org.flatpak.commit": "0943b104b7a455c37d3fc125fe268563b56efa1f596baac8b572322683a0704d",
+            "org.flatpak.timestamp": "1782192405"
           }
         }
       ]
