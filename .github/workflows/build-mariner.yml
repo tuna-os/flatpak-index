@@ -1,0 +1,81 @@
+name: Build & Publish Mariner Flatpak
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 0'  # weekly rebuild on Sundays
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-oci:
+    name: Build Flatpak OCI
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Flatpak
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          manifest-path: manifests/mariner/org.tunaos.mariner.json
+          cache-key: flatpak-builder-mariner-${{ github.sha }}
+          build-bundle: false
+          upload-artifact: false
+          arch: x86_64
+
+      - name: Export OCI
+        run: |
+          flatpak build-bundle --oci --arch=x86_64 repo mariner.oci org.tunaos.mariner
+
+      - name: Upload OCI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mariner-oci
+          path: mariner.oci/
+          retention-days: 1
+
+  publish:
+    name: Publish to GHCR
+    needs: build-oci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: mariner-oci
+          path: mariner.oci
+
+      - name: Push OCI to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | skopeo login ghcr.io -u "${{ github.actor }}" --password-stdin
+          skopeo copy oci:mariner.oci docker://ghcr.io/tuna-os/mariner:latest
+
+      - name: Update flatpak index
+        run: |
+          pip install requests
+          python3 .github/scripts/update-index.py \
+            --oci-dir mariner.oci \
+            --index-file index/static \
+            --repo-name tuna-os/mariner \
+            --tags latest
+
+      - name: Commit and push index update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index/static
+          if git diff --cached --quiet; then
+            echo "No index changes"
+          else
+            git commit -m "chore(flatpak): update Mariner OCI index"
+            git push origin main
+          fi

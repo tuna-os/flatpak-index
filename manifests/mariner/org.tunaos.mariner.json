@@ -1,0 +1,79 @@
+{
+  "id": "org.tunaos.mariner",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "50",
+  "sdk": "org.gnome.Sdk",
+  "command": "mariner",
+  "rename-desktop-file": "com.github.romgrk.mariner.desktop",
+  "rename-icon": "com.github.romgrk.mariner",
+  "tags": ["latest"],
+  "finish-args": [
+    "--share=ipc",
+    "--socket=fallback-x11",
+    "--socket=wayland",
+    "--device=dri",
+    "--filesystem=host",
+    "--filesystem=home",
+    "--talk-name=org.freedesktop.Flatpak",
+    "--talk-name=org.gtk.vfs.*",
+    "--talk-name=org.gtk.vfs.Daemon",
+    "--talk-name=org.gtk.vfs.Notifications",
+    "--system-talk-name=org.freedesktop.UDisks2",
+    "--env=GIO_EXTRA_MODULES=/app/lib/gio/modules"
+  ],
+  "cleanup": [
+    "/include",
+    "/lib/pkgconfig",
+    "/share/doc",
+    "*.la",
+    "*.a"
+  ],
+  "modules": [
+    {
+      "name": "nodejs",
+      "buildsystem": "simple",
+      "build-commands": [
+        "mkdir -p /app/nodejs",
+        "tar xf node.tar.xz -C /app/nodejs --strip-components=1",
+        "rm -f node.tar.xz"
+      ],
+      "sources": [
+        {
+          "type": "archive",
+          "url": "https://nodejs.org/dist/v22.23.1/node-v22.23.1-linux-x64.tar.xz",
+          "sha256": "9749e988f437343b7fa832c69ded82a312e41a03116d766797ac14f6f9eee578",
+          "only-arches": ["x86_64"]
+        }
+      ]
+    },
+    {
+      "name": "mariner",
+      "buildsystem": "simple",
+      "build-options": {
+        "build-args": ["--share=network"]
+      },
+      "build-commands": [
+        "export PATH=/app/nodejs/bin:$PATH",
+        "export npm_config_build_from_source=true",
+        "export npm_config_cache=$(pwd)/.npm-cache",
+        "mkdir -p /app/mariner",
+        "cp -r /run/build/mariner/. /app/mariner/",
+        "cd /app/mariner && npm install --omit=dev --no-fund --no-audit",
+        "rm -rf /app/mariner/node_modules/.cache /app/mariner/.npm-cache",
+        "mkdir -p /app/bin",
+        "printf '#!/bin/sh\nexec /app/nodejs/bin/node --import /app/mariner/node_modules/node-gtk/lib/esm/register.mjs /app/mariner/src/main.ts \"$@\"\n' > /app/bin/mariner",
+        "chmod 755 /app/bin/mariner",
+        "install -Dm644 /app/mariner/data/com.github.romgrk.mariner.desktop /app/share/applications/com.github.romgrk.mariner.desktop",
+        "install -Dm644 /app/mariner/data/com.github.romgrk.mariner.metainfo.xml /app/share/metainfo/com.github.romgrk.mariner.metainfo.xml",
+        "install -Dm644 /app/mariner/data/icons/hicolor/scalable/apps/com.github.romgrk.mariner.svg /app/share/icons/hicolor/scalable/apps/com.github.romgrk.mariner.svg"
+      ],
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://github.com/romgrk/mariner.git",
+          "branch": "master"
+        }
+      ]
+    }
+  ]
+}
