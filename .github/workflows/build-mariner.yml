@@ -59,20 +59,24 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | skopeo login ghcr.io -u "${{ github.actor }}" --password-stdin
           skopeo copy oci:mariner.oci docker://ghcr.io/tuna-os/mariner:latest
 
-      - name: Update flatpak index
+      - name: Update central index (tuna-os/docs)
         run: |
+          git clone --depth 1 \
+            https://x-access-token:${{ secrets.FLATPAK_INDEX_TOKEN }}@github.com/tuna-os/docs.git \
+            index-repo
           pip install requests
           python3 .github/scripts/update-index.py \
             --oci-dir mariner.oci \
-            --index-file index/static \
+            --index-file index-repo/static/flatpak/index/static \
             --repo-name tuna-os/mariner \
             --tags latest
 
       - name: Commit and push index update
         run: |
+          cd index-repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index/static
+          git add static/flatpak/index/static
           if git diff --cached --quiet; then
             echo "No index changes"
           else
