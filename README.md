@@ -13,13 +13,13 @@ The remote is served via Cloudflare Pages from the [tuna-os/docs](https://github
 
 | App | Install |
 |-----|---------|
-| Tables | `flatpak install tuna-os io.github.hanthor.tables` |
-| Tables (Rust) | `flatpak install tuna-os org.tunaos.tables-rust` |
-| Decks | `flatpak install tuna-os io.github.hanthor.decks` |
-| Decks (Rust) | `flatpak install tuna-os org.tunaos.decks-rust` |
-| Letters | `flatpak install tuna-os net.codelogistics.letters` |
 | Letters (Rust) | `flatpak install tuna-os org.tunaos.letters-rust` |
+| Tables (Rust) | `flatpak install tuna-os org.tunaos.tables-rust` |
+| Decks (Rust) | `flatpak install tuna-os org.tunaos.decks-rust` |
 | Mariner | `flatpak install tuna-os org.tunaos.mariner` |
+
+> **Note**: These are the Rust rewrite versions from [gtk-office-suite](https://github.com/tuna-os/gtk-office-suite).
+> The legacy Python versions are at [tables](https://github.com/tuna-os/tables), [decks](https://github.com/tuna-os/decks), [letters](https://github.com/tuna-os/letters).
 
 ---
 
