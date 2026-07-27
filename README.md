@@ -17,6 +17,7 @@ The remote is served via Cloudflare Pages from the [tuna-os/docs](https://github
 | Tables (Rust) | `flatpak install tuna-os org.tunaos.tables-rust` |
 | Decks (Rust) | `flatpak install tuna-os org.tunaos.decks-rust` |
 | Mariner | `flatpak install tuna-os org.tunaos.mariner` |
+| Finupdate | `flatpak install tuna-os org.tunaos.finupdate` |
 | Installer (KDE) | `flatpak install tuna-os org.tunaos.InstallerKde` |
 | Installer (Niri) | `flatpak install tuna-os org.tunaos.InstallerNiri` |
 | Installer (COSMIC) | `flatpak install tuna-os org.tunaos.InstallerCosmic` |
