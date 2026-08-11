@@ -13,11 +13,13 @@ The remote is served via Cloudflare Pages from the [tuna-os/docs](https://github
 
 | App | Install |
 |-----|---------|
-| Letters (Rust) | `flatpak install tuna-os org.tunaos.letters-rust` |
-| Tables (Rust) | `flatpak install tuna-os org.tunaos.tables-rust` |
-| Decks (Rust) | `flatpak install tuna-os org.tunaos.decks-rust` |
+| Letters | `flatpak install tuna-os org.tunaos.letters` |
+| Tables | `flatpak install tuna-os org.tunaos.tables` |
+| Decks | `flatpak install tuna-os org.tunaos.decks` |
 | Mariner | `flatpak install tuna-os org.tunaos.mariner` |
 | Finupdate | `flatpak install tuna-os org.tunaos.finupdate` |
+| Mandelbrot | `flatpak install tuna-os org.tunaos.mandelbrot` |
+| Tavern | `flatpak install tuna-os org.tunaos.tavern` |
 | Installer (KDE) | `flatpak install tuna-os org.tunaos.InstallerKde` |
 | Installer (Niri) | `flatpak install tuna-os org.tunaos.InstallerNiri` |
 | Installer (COSMIC) | `flatpak install tuna-os org.tunaos.InstallerCosmic` |
@@ -27,7 +29,7 @@ The remote is served via Cloudflare Pages from the [tuna-os/docs](https://github
 > bootc backend and are preinstalled on the matching TunaOS live ISOs
 > (see `build_scripts/installer-frontend.sh` in [tuna-os/tunaOS](https://github.com/tuna-os/tunaOS)).
 
-> **Note**: These are the Rust rewrite versions from [gtk-office-suite](https://github.com/tuna-os/gtk-office-suite).
+> **Note**: Letters, Tables and Decks are the Rust rewrite versions from [gtk-office-suite](https://github.com/tuna-os/gtk-office-suite). The office-suite manifests publish unsuffixed IDs (`org.tunaos.letters` etc.).
 > The legacy Python versions are at [tables](https://github.com/tuna-os/tables), [decks](https://github.com/tuna-os/decks), [letters](https://github.com/tuna-os/letters).
 
 ---
