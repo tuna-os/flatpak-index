@@ -220,3 +220,5 @@ ghcr.io/tuna-os/<app>         → OCI images with flatpak metadata
 ## Index format
 
 The `index/static` file is a JSON array with OCI image references. Each entry maps an app name to its manifest digest and flatpak metadata labels. Flatpak downloads this index, finds the right image by app ID and architecture, then pulls it from the GHCR registry.
+
+> **Note:** the authoritative index is `static/flatpak/index/static` in the [tuna-os/docs](https://github.com/tuna-os/docs) repo, served at `https://tunaos.org/flatpak/`. The copy of `index/static` in *this* repo is a **historical snapshot** and is **not** what the remote serves — treat it as reference only. When the README's [Available apps](#available-apps) table and this snapshot disagree, the table (and tunaos.org) reflect the live remote.
