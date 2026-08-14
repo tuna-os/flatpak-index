@@ -21,6 +21,7 @@ The remote is served via Cloudflare Pages from the [tuna-os/docs](https://github
 | Dualcut | `flatpak install tuna-os org.tunaos.dualcut` |
 | Mandelbrot | `flatpak install tuna-os org.tunaos.mandelbrot` |
 | Tavern | `flatpak install tuna-os org.tunaos.tavern` |
+| Installer (bootc-installer) | `flatpak install tuna-os org.bootcinstaller.Installer` |
 | Installer (KDE) | `flatpak install tuna-os org.tunaos.InstallerKde` |
 | Installer (Niri) | `flatpak install tuna-os org.tunaos.InstallerNiri` |
 | Installer (COSMIC) | `flatpak install tuna-os org.tunaos.InstallerCosmic` |
