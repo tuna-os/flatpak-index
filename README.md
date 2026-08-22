@@ -110,7 +110,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   packages: write
 
 jobs:
@@ -150,16 +150,19 @@ jobs:
           name: <app>-oci
           path: <app>.oci
       - name: Push OCI to GHCR
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | skopeo login ghcr.io -u "${{ github.actor }}" --password-stdin
-          skopeo copy oci:<app>.oci docker://ghcr.io/tuna-os/<app>:latest
-      - name: Update central index (tuna-os/docs)
         env:
-          FLATPAK_INDEX_TOKEN: ${{ secrets.FLATPAK_INDEX_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git clone --depth 1 \
-            https://x-access-token:${FLATPAK_INDEX_TOKEN}@github.com/tuna-os/docs.git \
-            index-repo
+          echo "$GITHUB_TOKEN" | skopeo login ghcr.io -u "${{ github.actor }}" --password-stdin
+          skopeo copy oci:<app>.oci docker://ghcr.io/tuna-os/<app>:latest
+      - name: Check out central index
+        uses: actions/checkout@v4
+        with:
+          repository: tuna-os/docs
+          token: ${{ secrets.FLATPAK_INDEX_TOKEN }}
+          path: index-repo
+      - name: Update central index (tuna-os/docs)
+        run: |
           pip install requests
           python3 .github/scripts/update-index.py \
             --oci-dir <app>.oci \
@@ -182,11 +185,16 @@ Also copy `.github/scripts/update-index.py` from an existing app (e.g. [tuna-os/
 
 ### 4. Set repo secrets
 
-- **`FLATPAK_INDEX_TOKEN`**: A GitHub PAT with push access to `tuna-os/docs`
+- **`FLATPAK_INDEX_TOKEN`**: A fine-grained GitHub PAT with **Contents: read and
+  write** access only to `tuna-os/docs`. Do not reuse a general-purpose CLI or
+  account token.
 
 ```bash
-gh secret set FLATPAK_INDEX_TOKEN --repo tuna-os/<app> --body "$(gh auth token)"
+gh secret set FLATPAK_INDEX_TOKEN --repo tuna-os/<app>
 ```
+
+Enter the fine-grained token at the prompt. Avoid putting token values in command
+arguments, repository URLs, or documentation.
 
 ### 5. Push to trigger the build
 
