@@ -78,6 +78,10 @@ Create `org.tunaos.<app>.json` at the repo root. For apps that use **GNOME 50** 
 }
 ```
 
+The app must also install `<app-id>.metainfo.xml` to `/app/share/metainfo/` and
+an icon to `/app/share/icons/hicolor/`, or it will have no name, icon, licence
+or screenshots in a software centre. See [App metadata](#app-metadata).
+
 For apps that need **Node.js** (like Mariner), add a `nodejs` module:
 
 ```json
@@ -163,11 +167,11 @@ jobs:
           path: index-repo
       - name: Update central index (tuna-os/docs)
         run: |
-          pip install requests
           python3 .github/scripts/update-index.py \
             --oci-dir <app>.oci \
             --index-file index-repo/static/flatpak/index/static \
             --repo-name tuna-os/<app> \
+            --require-appstream \
             --tags latest
           cd index-repo
           git config user.name "github-actions[bot]"
@@ -181,7 +185,10 @@ jobs:
           fi
 ```
 
-Also copy `.github/scripts/update-index.py` from an existing app (e.g. [tuna-os/mariner](https://github.com/tuna-os/mariner)).
+Also vendor [`scripts/update-index.py`](scripts/update-index.py) from this repo
+to `.github/scripts/update-index.py`. That is the canonical copy — do not copy
+an older one from another app repo, and see
+[App metadata](#app-metadata) for why.
 
 ### 4. Set repo secrets
 
@@ -208,6 +215,37 @@ The CI will:
 3. Push to `ghcr.io/tuna-os/<app>:latest`
 4. Update the central index in `tuna-os/docs/static/flatpak/index/static`
 5. Cloudflare Pages redeploys `tunaos.org` with the new index
+
+## App metadata
+
+Software centres such as [Bazaar](https://github.com/kolunmi/bazaar), GNOME
+Software and KDE Discover render an app page from **AppStream** metadata. On an
+OCI remote that metadata travels as three image labels —
+`org.freedesktop.appstream.appdata`, `.icon-64` and `.icon-128` — which
+`flatpak build-bundle --oci` writes automatically from the app's
+`/app/share/metainfo/<app-id>.metainfo.xml`.
+
+The publisher must copy those labels into `index/static`. If it does not,
+flatpak has nothing to build a catalogue from and every app in the remote shows
+up as a bare application ID with an "Unknown" licence and no screenshots.
+
+- **Writing a metainfo file:** [`docs/METAINFO.md`](docs/METAINFO.md), starting
+  from [`templates/org.tunaos.example.metainfo.xml`](templates/org.tunaos.example.metainfo.xml).
+  It follows [Flathub's quality guidelines](https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines),
+  which is the bar software centres render against.
+- **Auditing the live remote:**
+
+  ```bash
+  curl -sSfL -o served-index.json https://tunaos.org/flatpak/index/static
+  ./scripts/enrich-index.py served-index.json --check
+  ```
+
+  This reports any published image whose metadata is missing from the index, or
+  that has no metadata at all. Run daily by
+  [`check-metadata.yml`](.github/workflows/check-metadata.yml).
+- **Repairing an index in place:** `./scripts/enrich-index.py <index-file>`
+  re-reads the labels from the registry and writes them back. It only touches
+  the digests already listed, so the set of published images is unchanged.
 
 ## Architecture
 

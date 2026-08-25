@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Template for a TunaOS Flatpak MetaInfo file.
+
+  Copy to data/<app-id>.metainfo.xml in the application repository, replace
+  every org.tunaos.example / Example value, and install it to
+  /app/share/metainfo/<app-id>.metainfo.xml.
+
+  Validate before committing:
+      appstreamcli validate data/org.tunaos.example.metainfo.xml
+
+  Field-by-field notes are in docs/METAINFO.md.
+-->
+<component type="desktop-application">
+  <!-- Must match the Flatpak application ID exactly. -->
+  <id>org.tunaos.example</id>
+
+  <!-- Licence of THIS file, not of the app. CC0-1.0, FSFAP or MIT. -->
+  <metadata_license>CC0-1.0</metadata_license>
+  <!-- SPDX identifier for the app's own licence. Software centres show
+       "Unknown" when this is missing or not valid SPDX. -->
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <!-- Short. 15 characters or fewer reads best; 20 is the ceiling. -->
+  <name>Example</name>
+  <!-- One line, sentence case, no trailing period, does not repeat the name.
+       Aim for 10-25 characters, 35 maximum. -->
+  <summary>Do the thing you came for</summary>
+
+  <description>
+    <p>
+      Two or three sentences a non-technical person would understand. Say what
+      the app is for, not how it is built. Do not restate the summary.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Keep bullets short and concrete</li>
+      <li>Ten items is the practical maximum</li>
+    </ul>
+  </description>
+
+  <developer id="org.tunaos">
+    <name>TunaOS</name>
+  </developer>
+
+  <launchable type="desktop-id">org.tunaos.example.desktop</launchable>
+
+  <!-- At least one screenshot, or software centres render an empty frame.
+       Host the PNGs somewhere stable and public: a raw.githubusercontent.com
+       path on a tag, or a release asset. Window only, no desktop background,
+       default theme, 1000x700 maximum (2000x1400 for HiDPI). Captions are a
+       single sentence with no trailing period. -->
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/tuna-os/example/main/screenshots/main.png</image>
+      <caption>The main window</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/tuna-os/example/main/screenshots/settings.png</image>
+      <caption>Adjusting preferences</caption>
+    </screenshot>
+  </screenshots>
+
+  <!-- Drives the "Age Rating" tile. An empty element means "rated, nothing to
+       declare" and is the correct value for most apps. Generate a populated
+       one at https://hughsie.github.io/oars/ if the app has user-generated
+       content, chat, or links out to the web. -->
+  <content_rating type="oars-1.1" />
+
+  <!-- Drives the form-factor tile ("Desktop Only" vs "Mobile"). Declare touch
+       support and a minimum window width only if they are true. -->
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <recommends>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </recommends>
+  <supports>
+    <control>touch</control>
+  </supports>
+
+  <!-- Accent colours behind the icon on the app page. Pick something with
+       contrast against the icon; avoid near-white and near-black. -->
+  <branding>
+    <color type="primary" scheme_preference="light">#99c1f1</color>
+    <color type="primary" scheme_preference="dark">#1a5fb4</color>
+  </branding>
+
+  <url type="homepage">https://tunaos.org</url>
+  <url type="bugtracker">https://github.com/tuna-os/example/issues</url>
+  <url type="vcs-browser">https://github.com/tuna-os/example</url>
+  <!-- Bazaar puts donation links above the fold. Include if one exists. -->
+  <!-- <url type="donation">https://example.org/donate</url> -->
+
+  <categories>
+    <category>Utility</category>
+  </categories>
+
+  <keywords>
+    <keyword>example</keyword>
+  </keywords>
+
+  <!-- Every release needs notes; software centres show them on update. -->
+  <releases>
+    <release version="1.0.0" date="2026-01-01">
+      <description>
+        <p>Two or three sentences on what actually changed.</p>
+      </description>
+    </release>
+  </releases>
+</component>
