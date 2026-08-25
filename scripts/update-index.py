@@ -3,7 +3,8 @@
 
 This is the canonical copy. Application repositories vendor it at
 ``.github/scripts/update-index.py`` and run it from their publish workflow
-after ``flatpak build-bundle --oci``.
+after ``flatpak build-bundle --oci``. It is deliberately self-contained: one
+file, standard library only.
 
 Unlike earlier revisions, this keeps the ``org.freedesktop.appstream.*``
 labels that ``flatpak build-bundle --oci`` writes into the image config.
@@ -17,11 +18,28 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from oci import APPSTREAM_LABELS, filter_labels  # noqa: E402
-
 REQUIRED_LABELS = ("org.flatpak.ref", "org.flatpak.metadata")
+
+# Labels that must survive into the index. Flatpak resolves and installs a ref
+# from the org.flatpak.* labels, and builds the remote's AppStream catalogue --
+# app name, icon, licence, screenshots, release notes -- from the
+# org.freedesktop.appstream.* ones.
+KEEP_LABEL_PREFIXES = ("org.flatpak.", "org.freedesktop.appstream.")
+
+APPSTREAM_LABELS = (
+    "org.freedesktop.appstream.appdata",
+    "org.freedesktop.appstream.icon-64",
+    "org.freedesktop.appstream.icon-128",
+)
+
+
+def filter_labels(labels):
+    """Keep only the labels the index is required to carry."""
+    return {
+        key: value
+        for key, value in (labels or {}).items()
+        if key.startswith(KEEP_LABEL_PREFIXES)
+    }
 
 
 def read_oci_layout(oci_dir):
