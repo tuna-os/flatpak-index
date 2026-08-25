@@ -49,6 +49,16 @@ class IndexTests(unittest.TestCase):
                     self.assertTrue(image["Labels"]["org.flatpak.ref"].startswith("app/"))
                 self.assertEqual(len(architectures), len(set(architectures)))
 
+    def test_image_size_labels_are_numeric(self):
+        for result in self.index["Results"]:
+            for image in result["Images"]:
+                with self.subTest(name=result["Name"], arch=image["Architecture"]):
+                    labels = image["Labels"]
+                    if "org.flatpak.installed-size" in labels:
+                        self.assertTrue(labels["org.flatpak.installed-size"].isdigit())
+                    if "org.flatpak.download-size" in labels:
+                        self.assertTrue(labels["org.flatpak.download-size"].isdigit())
+
 
 class RepositoryDescriptorTests(unittest.TestCase):
     @classmethod
@@ -70,6 +80,14 @@ class RepositoryDescriptorTests(unittest.TestCase):
         self.assertEqual(parsed.scheme, "https")
         self.assertTrue(parsed.netloc)
 
+    def test_icon_url_is_https(self):
+        icon = self.repo.get("Icon")
+        if icon:
+            parsed = urlparse(icon)
+            self.assertEqual(parsed.scheme, "https")
+            self.assertTrue(parsed.netloc)
+
 
 if __name__ == "__main__":
     unittest.main()
+
