@@ -18,3 +18,50 @@ jobs:
         with:
           python-version: "3.14"
       - run: python3 -m unittest discover -s tests -v
+
+  # The capture action is consumed by other repos, so a wrong package name in
+  # its dependency list only ever surfaces as a red build somewhere else. It
+  # shipped claiming "xorg-x11-utils", which Fedora retired and split years
+  # ago, and nothing here noticed because nothing here ran it. These two jobs
+  # run it for real on both package-manager paths against a trivial Xt client.
+  #
+  # The message is a single token on purpose: the action interpolates its
+  # `command` input unquoted, so a quoted phrase would word-split.
+  capture-action-apt:
+    name: capture action (apt)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/capture-screenshots
+        with:
+          command: xmessage -center capture-action-self-test
+          name: self-test
+          out-dir: /tmp/shots
+      - name: The capture must be a real, non-blank image
+        run: |
+          # capture-app.sh deletes a flat image rather than leaving it on
+          # disk, so a file existing here means a window genuinely painted.
+          test -s /tmp/shots/self-test.png
+          identify -format '%m %wx%h %k colours\n' /tmp/shots/self-test.png | grep -q '^PNG'
+
+  capture-action-dnf:
+    name: capture action (dnf)
+    runs-on: ubuntu-latest
+    container: fedora:45
+    steps:
+      - name: Install git first
+        run: dnf -y install git
+      - uses: actions/checkout@v7
+      - name: Install the test client
+        # xmessage is its own package on Fedora; on Debian it arrives with the
+        # x11-utils the action already installs.
+        run: dnf -y install xmessage
+      - uses: ./.github/actions/capture-screenshots
+        with:
+          command: xmessage -center capture-action-self-test
+          name: self-test
+          out-dir: /tmp/shots
+      - name: The capture must be a real, non-blank image
+        run: |
+          test -s /tmp/shots/self-test.png
+          identify -format '%m %wx%h %k colours\n' /tmp/shots/self-test.png | grep -q '^PNG'
