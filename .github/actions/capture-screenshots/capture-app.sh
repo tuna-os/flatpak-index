@@ -58,10 +58,24 @@ export GDK_BACKEND=x11 QT_QPA_PLATFORM=xcb
 "$@" >/tmp/app.log 2>&1 &
 APP_PID=$!
 
-# Wait for the app to map a window OF ITS OWN. Searching by name matches
-# Xvfb's root window on an empty display, which made every failure look like a
-# success and capture a blank screen -- so match on the process instead.
-# --any-pid-descendant catches launcher shims that exec or fork the real UI.
+# Wait for the app to map a window OF ITS OWN.
+#
+# Three strategies, in order of how specific they are:
+#
+#   --pid / --any-pid-descendant  Exact, but only works for a toolkit that
+#       sets _NET_WM_PID (GTK and Qt do) AND a process in this PID namespace.
+#       A Flatpak fails both halves: it runs in its own PID namespace, so the
+#       _NET_WM_PID its window advertises is the pid *inside* the sandbox and
+#       never matches the host pid we hold.
+#
+#   --class '.'  Any window carrying a WM_CLASS of at least one character.
+#       Toolkit windows set WM_CLASS; Xvfb's root window does not, so this
+#       cannot silently match an empty display. It also covers plain Xt apps
+#       (xmessage, xclock), which set no _NET_WM_PID at all.
+#
+# What is deliberately NOT used is --name '.*': the empty string matches, so
+# it returns the root window on a bare display. That made a failed launch look
+# like a success and photograph a blank screen.
 WIN=""
 for _ in $(seq $((SETTLE * 10))); do
   if ! kill -0 "$APP_PID" 2>/dev/null; then
@@ -70,6 +84,7 @@ for _ in $(seq $((SETTLE * 10))); do
   fi
   WIN="$(xdotool search --onlyvisible --pid "$APP_PID" 2>/dev/null | tail -1 || true)"
   [ -n "$WIN" ] || WIN="$(xdotool search --onlyvisible --any-pid-descendant "$APP_PID" 2>/dev/null | tail -1 || true)"
+  [ -n "$WIN" ] || WIN="$(xdotool search --onlyvisible --class '.' 2>/dev/null | tail -1 || true)"
   [ -n "$WIN" ] && break
   sleep 0.2
 done
@@ -90,7 +105,10 @@ sleep "$SETTLE"   # let fonts, icons and any async first paint settle
 import -window root "$OUT/$NAME.png"
 
 # A window that never painted yields a single flat colour; that is a failure,
-# not a screenshot.
+# not a screenshot. The threshold is a heuristic aimed at real applications:
+# a strictly monochrome client (xmessage, say -- unantialiased black on white
+# is exactly 2 colours) trips it even though it painted correctly. No GTK or
+# Qt app gets anywhere near this few.
 COLOURS="$(identify -format '%k' "$OUT/$NAME.png")"
 if [ "$COLOURS" -lt 8 ]; then
   echo "capture-app.sh: captured image has only $COLOURS colours - window never painted" >&2

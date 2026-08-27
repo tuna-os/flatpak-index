@@ -19,22 +19,29 @@ jobs:
           python-version: "3.14"
       - run: python3 -m unittest discover -s tests -v
 
-  # The capture action is consumed by other repos, so a wrong package name in
-  # its dependency list only ever surfaces as a red build somewhere else. It
-  # shipped claiming "xorg-x11-utils", which Fedora retired and split years
-  # ago, and nothing here noticed because nothing here ran it. These two jobs
-  # run it for real on both package-manager paths against a trivial Xt client.
+  # The capture action is consumed by other repos, so a defect in it only ever
+  # surfaces as a red build somewhere else. It shipped asking for
+  # xorg-x11-utils (retired and split by Fedora years ago) and matching
+  # windows only by _NET_WM_PID (which plain Xt apps never set), and nothing
+  # here noticed, because nothing here ran it. These two jobs run it for real
+  # on both package-manager paths.
   #
-  # The message is a single token on purpose: the action interpolates its
-  # `command` input unquoted, so a quoted phrase would word-split.
+  # xclock -analog rather than xmessage: xmessage draws unantialiased black
+  # text on white, i.e. exactly 2 colours, which the script's own
+  # blank-image guard rejects. The clock's curves clear it comfortably (255
+  # colours) while still being a trivial dependency.
   capture-action-apt:
     name: capture action (apt)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Install the test client
+        # xclock lives in x11-apps on Debian; the action installs x11-utils,
+        # which is a different package.
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq x11-apps
       - uses: ./.github/actions/capture-screenshots
         with:
-          command: xmessage -center capture-action-self-test
+          command: xclock -analog
           name: self-test
           out-dir: /tmp/shots
       - name: The capture must be a real, non-blank image
@@ -53,12 +60,10 @@ jobs:
         run: dnf -y install git
       - uses: actions/checkout@v7
       - name: Install the test client
-        # xmessage is its own package on Fedora; on Debian it arrives with the
-        # x11-utils the action already installs.
-        run: dnf -y install xmessage
+        run: dnf -y install xclock
       - uses: ./.github/actions/capture-screenshots
         with:
-          command: xmessage -center capture-action-self-test
+          command: xclock -analog
           name: self-test
           out-dir: /tmp/shots
       - name: The capture must be a real, non-blank image
