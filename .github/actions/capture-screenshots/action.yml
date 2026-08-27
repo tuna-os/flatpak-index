@@ -63,12 +63,25 @@ runs:
         # that with update-index.py).
         SCRIPT="${{ github.action_path }}/capture-app.sh"
 
-        # A repo using this action locally (`uses: ./.github/actions/...`) from
-        # a job that runs in a container gets action_path as a *host* path --
-        # /home/runner/work/... -- which does not exist inside the container,
-        # where the workspace is mounted at /__w/... . The remote form
-        # (owner/repo/path@ref) is unaffected, so this only bites the repo that
-        # owns the action, which is exactly the one whose CI tests it.
+        # In a job container, github.action_path is a *host* path
+        # (/home/runner/work/...), but the runner mounts that whole tree at
+        # /__w inside the container, so the path as handed to us does not
+        # resolve. This hits BOTH reference forms -- a local
+        # `uses: ./.github/actions/...` and a remote owner/repo/path@ref,
+        # which lands under work/_actions/ -- so every containerised caller is
+        # affected, not just the repo that owns the action.
+        #
+        # Re-anchor on the container's work root, which GITHUB_WORKSPACE gives
+        # us: it is /__w/<owner>/<repo>, so two dirnames up is /__w.
+        if [ ! -f "$SCRIPT" ]; then
+          work_root="$(dirname "$(dirname "$GITHUB_WORKSPACE")")"
+          rel="${SCRIPT#*/work/}"
+          if [ "$rel" != "$SCRIPT" ] && [ -f "$work_root/$rel" ]; then
+            SCRIPT="$work_root/$rel"
+          fi
+        fi
+
+        # Last resort: a checkout that vendored the action somewhere else.
         if [ ! -f "$SCRIPT" ]; then
           SCRIPT="$(find "$GITHUB_WORKSPACE" -type f -name capture-app.sh \
                       -path '*capture-screenshots*' -print -quit)"
