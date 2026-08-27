@@ -61,5 +61,22 @@ runs:
         # action is self-contained: no path escape out of action_path, and no
         # second copy to drift out of sync (the org has been bitten by exactly
         # that with update-index.py).
-        "${{ github.action_path }}/capture-app.sh" \
+        SCRIPT="${{ github.action_path }}/capture-app.sh"
+
+        # A repo using this action locally (`uses: ./.github/actions/...`) from
+        # a job that runs in a container gets action_path as a *host* path --
+        # /home/runner/work/... -- which does not exist inside the container,
+        # where the workspace is mounted at /__w/... . The remote form
+        # (owner/repo/path@ref) is unaffected, so this only bites the repo that
+        # owns the action, which is exactly the one whose CI tests it.
+        if [ ! -f "$SCRIPT" ]; then
+          SCRIPT="$(find "$GITHUB_WORKSPACE" -type f -name capture-app.sh \
+                      -path '*capture-screenshots*' -print -quit)"
+        fi
+        [ -n "$SCRIPT" ] && [ -f "$SCRIPT" ] || {
+          echo "::error::capture-app.sh not found (action_path=${{ github.action_path }})"
+          exit 1
+        }
+
+        bash "$SCRIPT" \
           "${{ inputs.out-dir }}" "${{ inputs.name }}" -- ${{ inputs.command }}
