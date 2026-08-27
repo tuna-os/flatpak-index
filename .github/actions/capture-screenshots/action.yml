@@ -1,0 +1,95 @@
+name: "Capture app screenshots"
+description: >-
+  Photograph a GUI application's own window under a headless X server and write
+  a PNG suitable for an AppStream <screenshot>. Toolkit-agnostic: it drives a
+  real X server rather than hooking into the app, so GTK, Qt, Electron and even
+  plain Xt applications all work.
+author: tuna-os
+
+inputs:
+  command:
+    description: >-
+      Command line that launches the app. Run as-is, so it may include a
+      wrapper (xvfb-run is NOT needed; this action provides the display).
+    required: true
+  name:
+    description: Basename for the PNG, without the extension (e.g. "01-main")
+    required: true
+  out-dir:
+    description: Directory to write the PNG into
+    required: false
+    default: docs/screenshots
+  geometry:
+    description: >-
+      Screen size, and the size the app window is fitted to. Flathub's maximum
+      for a non-HiDPI screenshot is 1000x700; going over it is a quality flag.
+    required: false
+    default: 1000x700
+  settle:
+    description: Seconds to let the window paint and settle before capturing
+    required: false
+    default: "6"
+
+runs:
+  using: composite
+  steps:
+    - name: Install capture dependencies
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Both package managers are handled because the callers are split:
+        # the installers build in Fedora containers (KF6/Qt6 are not packaged
+        # on the Ubuntu runners), the GTK apps on ubuntu-latest.
+        if command -v dnf >/dev/null; then
+          # xdpyinfo, not xorg-x11-utils: Fedora retired that umbrella package
+          # and split it per-utility, so installing it fails outright.
+          dnf -y install --setopt=install_weak_deps=False \
+            xorg-x11-server-Xvfb xdpyinfo xdotool ImageMagick
+        else
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb x11-utils xdotool imagemagick
+        fi
+
+    - name: Capture
+      shell: bash
+      env:
+        WIDTHxHEIGHT: ${{ inputs.geometry }}
+        SETTLE: ${{ inputs.settle }}
+      run: |
+        set -euo pipefail
+        # The script lives beside this action rather than in scripts/, so the
+        # action is self-contained: no path escape out of action_path, and no
+        # second copy to drift out of sync (the org has been bitten by exactly
+        # that with update-index.py).
+        SCRIPT="${{ github.action_path }}/capture-app.sh"
+
+        # In a job container, github.action_path is a *host* path
+        # (/home/runner/work/...), but the runner mounts that whole tree at
+        # /__w inside the container, so the path as handed to us does not
+        # resolve. This hits BOTH reference forms -- a local
+        # `uses: ./.github/actions/...` and a remote owner/repo/path@ref,
+        # which lands under work/_actions/ -- so every containerised caller is
+        # affected, not just the repo that owns the action.
+        #
+        # Re-anchor on the container's work root, which GITHUB_WORKSPACE gives
+        # us: it is /__w/<owner>/<repo>, so two dirnames up is /__w.
+        if [ ! -f "$SCRIPT" ]; then
+          work_root="$(dirname "$(dirname "$GITHUB_WORKSPACE")")"
+          rel="${SCRIPT#*/work/}"
+          if [ "$rel" != "$SCRIPT" ] && [ -f "$work_root/$rel" ]; then
+            SCRIPT="$work_root/$rel"
+          fi
+        fi
+
+        # Last resort: a checkout that vendored the action somewhere else.
+        if [ ! -f "$SCRIPT" ]; then
+          SCRIPT="$(find "$GITHUB_WORKSPACE" -type f -name capture-app.sh \
+                      -path '*capture-screenshots*' -print -quit)"
+        fi
+        [ -n "$SCRIPT" ] && [ -f "$SCRIPT" ] || {
+          echo "::error::capture-app.sh not found (action_path=${{ github.action_path }})"
+          exit 1
+        }
+
+        bash "$SCRIPT" \
+          "${{ inputs.out-dir }}" "${{ inputs.name }}" -- ${{ inputs.command }}

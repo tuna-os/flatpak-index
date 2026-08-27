@@ -18,3 +18,55 @@ jobs:
         with:
           python-version: "3.14"
       - run: python3 -m unittest discover -s tests -v
+
+  # The capture action is consumed by other repos, so a defect in it only ever
+  # surfaces as a red build somewhere else. It shipped asking for
+  # xorg-x11-utils (retired and split by Fedora years ago) and matching
+  # windows only by _NET_WM_PID (which plain Xt apps never set), and nothing
+  # here noticed, because nothing here ran it. These two jobs run it for real
+  # on both package-manager paths.
+  #
+  # xclock -analog rather than xmessage: xmessage draws unantialiased black
+  # text on white, i.e. exactly 2 colours, which the script's own
+  # blank-image guard rejects. The clock's curves clear it comfortably (255
+  # colours) while still being a trivial dependency.
+  capture-action-apt:
+    name: capture action (apt)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install the test client
+        # xclock lives in x11-apps on Debian; the action installs x11-utils,
+        # which is a different package.
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq x11-apps
+      - uses: ./.github/actions/capture-screenshots
+        with:
+          command: xclock -analog
+          name: self-test
+          out-dir: /tmp/shots
+      - name: The capture must be a real, non-blank image
+        run: |
+          # capture-app.sh deletes a flat image rather than leaving it on
+          # disk, so a file existing here means a window genuinely painted.
+          test -s /tmp/shots/self-test.png
+          identify -format '%m %wx%h %k colours\n' /tmp/shots/self-test.png | grep -q '^PNG'
+
+  capture-action-dnf:
+    name: capture action (dnf)
+    runs-on: ubuntu-latest
+    container: fedora:45
+    steps:
+      - name: Install git first
+        run: dnf -y install git
+      - uses: actions/checkout@v7
+      - name: Install the test client
+        run: dnf -y install xclock
+      - uses: ./.github/actions/capture-screenshots
+        with:
+          command: xclock -analog
+          name: self-test
+          out-dir: /tmp/shots
+      - name: The capture must be a real, non-blank image
+        run: |
+          test -s /tmp/shots/self-test.png
+          identify -format '%m %wx%h %k colours\n' /tmp/shots/self-test.png | grep -q '^PNG'

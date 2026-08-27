@@ -1,5 +1,6 @@
 import base64
 import configparser
+import importlib.util
 import json
 import re
 import unittest
@@ -166,3 +167,54 @@ class AppStreamTests(unittest.TestCase):
                         decoded.startswith(b"\x89PNG\r\n\x1a\n"),
                         "does not decode to a PNG",
                     )
+
+
+class ScreenshotCountTests(unittest.TestCase):
+    """Cover the screenshot audit in scripts/enrich-index.py.
+
+    An app with metadata but no screenshots renders an empty frame in a
+    software centre. That is invisible from the index unless something looks
+    inside the catalogue, which is what this guards.
+    """
+
+    @staticmethod
+    def _load():
+        spec = importlib.util.spec_from_file_location(
+            "enrich_index", ROOT / "scripts" / "enrich-index.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def setUp(self):
+        self.enrich = self._load()
+
+    def catalogue(self, body):
+        return (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<components version="0.8" origin="flatpak">'
+            '<component type="desktop-application">'
+            "<id>org.tunaos.demo</id>" + body + "</component></components>"
+        )
+
+    def test_counts_screenshots(self):
+        body = (
+            "<screenshots>"
+            '<screenshot type="default"><image>https://e/1.png</image></screenshot>'
+            "<screenshot><image>https://e/2.png</image></screenshot>"
+            "</screenshots>"
+        )
+        self.assertEqual(self.enrich.screenshot_count(self.catalogue(body)), 2)
+
+    def test_no_screenshots_is_zero_not_none(self):
+        # Zero and unparseable must stay distinguishable: one is a presentation
+        # problem, the other a broken catalogue.
+        self.assertEqual(self.enrich.screenshot_count(self.catalogue("")), 0)
+
+    def test_empty_screenshots_element_is_zero(self):
+        self.assertEqual(
+            self.enrich.screenshot_count(self.catalogue("<screenshots></screenshots>")), 0
+        )
+
+    def test_unparseable_catalogue_is_none(self):
+        self.assertIsNone(self.enrich.screenshot_count("<components><broken"))
