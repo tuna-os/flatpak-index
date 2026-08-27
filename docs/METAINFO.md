@@ -53,7 +53,7 @@ It reports which published images carry no AppStream metadata.
 | Licence badge | `<project_license>` — must be a valid SPDX identifier |
 | Age Rating | `<content_rating type="oars-1.1">` |
 | Desktop Only / Mobile | `<requires><display_length>` and `<supports><control>` |
-| Screenshots | `<screenshots>` — needs publicly reachable image URLs |
+| Screenshots | `<screenshots>` — needs publicly reachable image URLs; generate them in CI, see [SCREENSHOTS.md](SCREENSHOTS.md) |
 | Release notes | `<releases>` |
 | Accent colour | `<branding><color>` |
 | Support / donate link | `<url type="donation">` |
@@ -76,9 +76,10 @@ The constraints worth repeating:
   trailing period, no leading article, does not repeat the name.
 - **`<description>`** — 3–10 lines. Must not restate the summary.
 - **`<screenshots>`** — at least one, 3–6 for a typical app. Window only, no
-  desktop background, default theme, 1000×700 maximum (2000×1400 HiDPI). The
-  URLs must resolve for anyone, so pin them to a tag or a release asset rather
-  than a moving branch.
+  desktop background, default theme, 1000×700 maximum (2000×1400 HiDPI). Do not
+  take these by hand: generate them in CI from the real app and commit them, so
+  they cannot go stale as the UI changes. See [SCREENSHOTS.md](SCREENSHOTS.md)
+  for the shared capture action and the wiring.
 - **`<releases>`** — real notes per release, not "bug fixes and improvements".
 - **`<content_rating type="oars-1.1" />`** — an empty element is correct for
   most apps and is what turns the "?" age-rating tile into a real value.

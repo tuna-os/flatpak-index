@@ -233,6 +233,11 @@ up as a bare application ID with an "Unknown" licence and no screenshots.
   from [`templates/org.tunaos.example.metainfo.xml`](templates/org.tunaos.example.metainfo.xml).
   It follows [Flathub's quality guidelines](https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines),
   which is the bar software centres render against.
+- **Screenshots:** [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md) — the shared
+  [capture action](.github/actions/capture-screenshots) photographs an app's own
+  window under a headless X server, so screenshots are generated in CI from the
+  real app rather than taken by hand. The audit below reports apps that declare
+  none.
 - **Auditing the live remote:**
 
   ```bash

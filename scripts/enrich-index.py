@@ -20,16 +20,37 @@ import json
 import os
 import sys
 from pathlib import Path
+from xml.etree import ElementTree
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from oci import APPSTREAM_LABELS, Registry, RegistryError, filter_labels  # noqa: E402
 
+APPDATA_LABEL = "org.freedesktop.appstream.appdata"
+
+
+def screenshot_count(appdata):
+    """Number of <screenshot> entries in an AppStream catalogue, or None.
+
+    None means the catalogue could not be parsed, which is a different
+    problem from an app that simply ships no screenshots.
+    """
+    try:
+        root = ElementTree.fromstring(appdata)
+    except ElementTree.ParseError:
+        return None
+    return len(root.findall(".//screenshot"))
+
 
 def enrich(index_data, registry, verbose=True):
-    """Merge registry labels into every image entry. Returns (updated, problems)."""
+    """Merge registry labels into every image entry.
+
+    Returns (updated, problems, warnings). Problems are things that make an
+    entry wrong; warnings are things that make it look bad.
+    """
     updated = 0
     problems = []
+    warnings = []
 
     for result in index_data.get("Results", []):
         repository = result["Name"]
@@ -48,6 +69,19 @@ def enrich(index_data, registry, verbose=True):
                     f"{label}: image has no AppStream metadata "
                     f"({', '.join(missing)}); it needs a metainfo file"
                 )
+            else:
+                # Metadata alone still leaves an empty frame in a software
+                # centre. Report it as a warning rather than a hard problem:
+                # a screenshot-less app is installable and correctly described,
+                # just poorly presented.
+                shots = screenshot_count(registry_labels[APPDATA_LABEL])
+                if shots is None:
+                    problems.append(f"{label}: AppStream catalogue does not parse")
+                elif shots == 0:
+                    warnings.append(
+                        f"{label}: no <screenshots> declared; software centres "
+                        f"will show an empty frame. See docs/SCREENSHOTS.md"
+                    )
 
             merged = dict(image.get("Labels") or {})
             merged.update(registry_labels)
@@ -60,7 +94,7 @@ def enrich(index_data, registry, verbose=True):
             elif verbose:
                 print(f"  = {label}: already complete")
 
-    return updated, problems
+    return updated, problems, warnings
 
 
 def main():
@@ -82,8 +116,10 @@ def main():
     registry = Registry(index_data["Registry"], token=args.token)
 
     print(f"Reading labels from {index_data['Registry']}")
-    updated, problems = enrich(index_data, registry)
+    updated, problems, warnings = enrich(index_data, registry)
 
+    for warning in warnings:
+        print(f"  ~ {warning}", file=sys.stderr)
     for problem in problems:
         print(f"  ! {problem}", file=sys.stderr)
 
