@@ -165,6 +165,20 @@ class PublisherTests(unittest.TestCase):
         self.assertEqual(by_arch["amd64"], "sha256:" + "f" * 64)
         self.assertTrue(by_arch["arm64"].startswith("sha256:"))
 
+    def test_read_oci_layout_missing_index_file(self):
+        missing_dir = self.tmp / "nonexistent-oci"
+        with self.assertRaises(FileNotFoundError):
+            update_index.read_oci_layout(missing_dir)
+
+    def test_read_oci_layout_empty_manifests(self):
+        oci_dir = self.tmp / "empty-manifests-oci"
+        oci_dir.mkdir(parents=True, exist_ok=True)
+        (oci_dir / "index.json").write_text(json.dumps({"manifests": []}))
+        with self.assertRaises(ValueError) as caught:
+            update_index.read_oci_layout(oci_dir)
+        self.assertIn("No manifests listed", str(caught.exception))
+
 
 if __name__ == "__main__":
     unittest.main()
+
