@@ -49,10 +49,20 @@ their publish workflow after `flatpak build-bundle --oci`. A third lives in
 
 They have **drifted structurally** — this copy is 146 lines, the composite
 action's is 118 — while currently agreeing on the label behaviour above.
-Nothing enforces the sync: "canonical" is asserted in a docstring, not checked
-by any test or workflow. When you change this file, check the other two
-deliberately; a fix landing in only one is the failure mode this arrangement
-invites.
+
+There *is* a sync check, and it does not cover this file.
+`flatpak-tooling-drift-check.yml` in `tuna-os/.github` runs weekly and compares
+eight application repos' `.github/scripts/update-index.py` against
+`.github/actions/update-flatpak-index/update-index.py`, which it treats as
+canonical. `tuna-os/flatpak-index` is not in its list. So this file's docstring
+claim to be "the canonical copy" is both unchecked and contradicted by the
+org's own definition — and the two disagree today (blob `b7dc0458` here,
+`6eaa8186` there).
+
+That check has also been failing on every scheduled run since 2026-08-17.
+
+When you change this file, check the other two deliberately; a fix landing in
+only one is the failure mode this arrangement invites.
 
 ## Checks
 
