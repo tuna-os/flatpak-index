@@ -186,8 +186,10 @@ jobs:
 ```
 
 Also vendor [`scripts/update-index.py`](scripts/update-index.py) from this repo
-to `.github/scripts/update-index.py`. That is the canonical copy — do not copy
-an older one from another app repo, and see
+to `.github/scripts/update-index.py`, or use the `update-flatpak-index` action
+from `tuna-os/.github` (`tuna-os/.github/actions/update-flatpak-index`). The script
+in this repository is the canonical standalone single-file implementation — do not
+copy an older version from another app repository, and see
 [App metadata](#app-metadata) for why.
 
 ### 4. Set repo secrets
