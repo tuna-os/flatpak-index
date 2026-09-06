@@ -7,7 +7,9 @@ itself -- which images get updated, when a registry read failure becomes a
 missing-screenshots are told apart -- had none.
 """
 
+import contextlib
 import importlib.util
+import io
 import sys
 import unittest
 from pathlib import Path
@@ -147,6 +149,29 @@ class EnrichTests(unittest.TestCase):
         self.assertEqual(
             index_data["Results"][0]["Images"][1]["Labels"], FULL_LABELS
         )
+
+    def test_verbose_default_prints_added_and_unchanged_lines(self):
+        """Every test above passes verbose=False, which left the two print
+        branches (added-labels, already-complete) never executed. This is
+        the actual default used by main()'s real invocation."""
+        index_data = _index(
+            [
+                {"Digest": "sha256:a", "Architecture": "x86_64", "Labels": {}},
+                {"Digest": "sha256:b", "Architecture": "aarch64", "Labels": dict(FULL_LABELS)},
+            ]
+        )
+        registry = FakeRegistry(
+            {"sha256:a": FULL_LABELS, "sha256:b": FULL_LABELS}
+        )
+
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            updated, problems, warnings = enrich_index.enrich(index_data, registry)
+
+        self.assertEqual(updated, 1)
+        self.assertEqual(problems, [])
+        self.assertIn("added org.freedesktop.appstream", out.getvalue())
+        self.assertIn("already complete", out.getvalue())
 
 
 if __name__ == "__main__":
