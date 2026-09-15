@@ -77,6 +77,12 @@ class RepositoryDescriptorTests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertTrue(self.repo.get(field))
 
+    def test_oci_authenticator_is_declared(self):
+        self.assertEqual(
+            self.repo.get("AuthenticatorName"),
+            "org.flatpak.Authenticator.Oci",
+        )
+
     def test_remote_uses_oci_over_https(self):
         self.assertTrue(self.repo["Url"].startswith("oci+https://"))
         parsed = urlparse(self.repo["Url"].removeprefix("oci+"))
