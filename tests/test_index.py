@@ -224,3 +224,13 @@ class ScreenshotCountTests(unittest.TestCase):
 
     def test_unparseable_catalogue_is_none(self):
         self.assertIsNone(self.enrich.screenshot_count("<components><broken"))
+
+    def test_site_icon_extension_does_not_make_catalogue_stale(self):
+        original = self.catalogue("<name>Demo</name>")
+        remote_icon = (
+            '    <icon type="remote" width="128" height="128">'
+            'https://tunaos.org/flatpak/icons/org.tunaos.demo-x86_64.png'
+            '</icon>\n'
+        )
+        enriched = original.replace("</component>", remote_icon + "</component>")
+        self.assertEqual(self.enrich.without_site_icon(enriched), original)

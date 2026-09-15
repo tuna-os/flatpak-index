@@ -18,6 +18,7 @@ maps grow.
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from xml.etree import ElementTree
@@ -27,6 +28,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from oci import APPSTREAM_LABELS, Registry, RegistryError, filter_labels  # noqa: E402
 
 APPDATA_LABEL = "org.freedesktop.appstream.appdata"
+SITE_ICON = re.compile(
+    r'    <icon type="remote" width="128" height="128">'
+    r'https://tunaos\.org/flatpak/icons/[A-Za-z0-9._-]+\.png</icon>\n'
+)
+
+
+def without_site_icon(appdata):
+    """Remove the Bazaar-compatible URL that the docs site adds at build."""
+    return SITE_ICON.sub("", appdata)
 
 
 def screenshot_count(appdata):
@@ -85,6 +95,14 @@ def enrich(index_data, registry, verbose=True):
 
             merged = dict(image.get("Labels") or {})
             merged.update(registry_labels)
+            existing_appdata = image.get("Labels", {}).get(APPDATA_LABEL)
+            registry_appdata = registry_labels.get(APPDATA_LABEL)
+            if (
+                existing_appdata is not None
+                and registry_appdata is not None
+                and without_site_icon(existing_appdata) == registry_appdata
+            ):
+                merged[APPDATA_LABEL] = existing_appdata
             if merged != image.get("Labels"):
                 added = sorted(set(merged) - set(image.get("Labels") or {}))
                 image["Labels"] = merged
