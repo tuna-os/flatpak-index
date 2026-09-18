@@ -55,13 +55,17 @@ runs:
       env:
         WIDTHxHEIGHT: ${{ inputs.geometry }}
         SETTLE: ${{ inputs.settle }}
+        ACTION_PATH: ${{ github.action_path }}
+        OUT_DIR: ${{ inputs.out-dir }}
+        APP_NAME: ${{ inputs.name }}
+        APP_COMMAND: ${{ inputs.command }}
       run: |
         set -euo pipefail
         # The script lives beside this action rather than in scripts/, so the
         # action is self-contained: no path escape out of action_path, and no
         # second copy to drift out of sync (the org has been bitten by exactly
         # that with update-index.py).
-        SCRIPT="${{ github.action_path }}/capture-app.sh"
+        SCRIPT="$ACTION_PATH/capture-app.sh"
 
         # In a job container, github.action_path is a *host* path
         # (/home/runner/work/...), but the runner mounts that whole tree at
@@ -87,9 +91,9 @@ runs:
                       -path '*capture-screenshots*' -print -quit)"
         fi
         [ -n "$SCRIPT" ] && [ -f "$SCRIPT" ] || {
-          echo "::error::capture-app.sh not found (action_path=${{ github.action_path }})"
+          echo "::error::capture-app.sh not found (action_path=$ACTION_PATH)"
           exit 1
         }
 
         bash "$SCRIPT" \
-          "${{ inputs.out-dir }}" "${{ inputs.name }}" -- ${{ inputs.command }}
+          "$OUT_DIR" "$APP_NAME" -- $APP_COMMAND
