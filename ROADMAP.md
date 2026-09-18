@@ -18,7 +18,7 @@ snapshot. Do not infer production state from this repository's Pages site.
 
 ## Near term: decide and make drift visible
 
-Target: one planning cycle.
+Target: Q3 2026 (Refreshed September 2026).
 
 - Name an accountable owner for the remote and choose its long-term source
   repository: move production ownership here, or formally retire this
@@ -27,7 +27,7 @@ Target: one planning cycle.
   and publisher workflow against the served production index.
 - Define a freshness SLO from a successful app publish to remote availability.
 - Add a production check that installs or inspects every catalog entry from the
-  served URL and reports catalog, digest, architecture, and metadata drift.
+  served URL (`https://tunaos.org/flatpak/`) and reports catalog, digest, architecture, and metadata drift.
 - Document an incident owner and a tested rollback procedure for a bad index
   publication.
 
@@ -36,7 +36,7 @@ in both repositories, and drift is measured from the user-facing endpoint.
 
 ## Mid term: consolidate publication
 
-Target: the cycle after the ownership decision.
+Target: Q4 2026.
 
 - Route index changes through one reviewed publisher contract rather than
   giving every application repository a long-lived cross-repository write
@@ -75,6 +75,4 @@ and non-authoritative copies cannot be mistaken for the live remote.
 
 ## Decision record
 
-Record the ownership decision and dates here when approved. Until then, this
-roadmap describes direction rather than a commitment to move production out of
-`tuna-os/docs`.
+- **2026-09-17**: Refreshed roadmap currency for Q4 2026 strategy planning. Identified production remote consolidation and centralized publisher validation as core targets to eliminate per-app fine-grained write tokens (tracked in #76). Until complete, `tuna-os/docs/static/flatpak/` remains the served production index.
