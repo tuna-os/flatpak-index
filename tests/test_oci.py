@@ -5,7 +5,6 @@ deterministic testing.
 """
 
 import json
-import subprocess
 import unittest
 from unittest.mock import MagicMock, patch
 

@@ -67,13 +67,11 @@ only one is the failure mode this arrangement invites.
 ## Checks
 
 ```bash
-python3 -m unittest discover -s tests -v   # 24 tests
+python3 -m unittest discover -s tests -v   # 38 tests
 ruff check .                               # config in ruff.toml
 ```
 
-> **`ruff` is configured but not enforced.** `tests.yml` runs the unittest
-> suite (and a screenshot capture); nothing runs ruff, and `ruff check .`
-> reports 2 findings on `main`.
+`tests.yml` runs both, in that order, on every pull request and push to main.
 
 `scripts/oci.py` holds the registry plumbing, `enrich-index.py` the validation
 used by the live check above.

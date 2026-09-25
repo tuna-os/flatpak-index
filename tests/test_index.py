@@ -5,9 +5,8 @@ import json
 import re
 import unittest
 from pathlib import Path
-from xml.etree import ElementTree
 from urllib.parse import urlparse
-
+from xml.etree import ElementTree
 
 ROOT = Path(__file__).resolve().parents[1]
 DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -44,7 +43,9 @@ class IndexTests(unittest.TestCase):
                 for image in result["Images"]:
                     architectures.append(image["Architecture"])
                     self.assertRegex(image["Digest"], DIGEST)
-                    self.assertEqual(image["MediaType"], "application/vnd.oci.image.manifest.v1+json")
+                    self.assertEqual(
+                        image["MediaType"], "application/vnd.oci.image.manifest.v1+json"
+                    )
                     self.assertEqual(image["OS"], "linux")
                     self.assertIn("latest", image["Tags"])
                     self.assertLessEqual(REQUIRED_LABELS, image["Labels"].keys())
