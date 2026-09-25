@@ -29,6 +29,7 @@ The remote is served via Cloudflare Pages from the [tuna-os/docs](https://github
 | Dualcut | `flatpak install tuna-os org.tunaos.dualcut` |
 | Mandelbrot | `flatpak install tuna-os org.tunaos.mandelbrot` |
 | Tavern | `flatpak install tuna-os org.tunaos.tavern` |
+| Compass | `flatpak install tuna-os com.vicinae.Vicinae` |
 | Installer (bootc-installer) | `flatpak install tuna-os org.bootcinstaller.Installer` |
 | Installer (KDE) | `flatpak install tuna-os org.tunaos.InstallerKde` |
 | Installer (Niri) | `flatpak install tuna-os org.tunaos.InstallerNiri` |
@@ -38,6 +39,12 @@ The remote is served via Cloudflare Pages from the [tuna-os/docs](https://github
 > The installer frontends drive the [fisherman](https://github.com/projectbluefin/fisherman)
 > bootc backend and are preinstalled on the matching TunaOS live ISOs
 > (see `build_scripts/installer-frontend.sh` in [tuna-os/tunaOS](https://github.com/tuna-os/tunaOS)).
+
+> **Compass** is a hard fork of [Vicinae](https://github.com/vicinaehq/vicinae), built from
+> [tuna-os/compass](https://github.com/tuna-os/compass). It keeps Vicinae's `com.vicinae.Vicinae`
+> app ID for migration compatibility (see the Compass repo's ADR-0012), so it is published as
+> `ghcr.io/tuna-os/compass` with a non-`org.tunaos` ID. It uses the `org.freedesktop.Platform//26.08`
+> runtime from Flathub, not GNOME 50.
 
 > **Note**: Letters, Tables and Decks are the Rust rewrite versions from [gtk-office-suite](https://github.com/tuna-os/gtk-office-suite). The office-suite manifests publish unsuffixed IDs (`org.tunaos.letters` etc.).
 > The legacy Python versions are at [tables](https://github.com/tuna-os/tables), [decks](https://github.com/tuna-os/decks), [letters](https://github.com/tuna-os/letters).

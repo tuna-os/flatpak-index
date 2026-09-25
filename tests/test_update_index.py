@@ -165,6 +165,30 @@ class PublisherTests(unittest.TestCase):
         self.assertEqual(by_arch["amd64"], "sha256:" + "f" * 64)
         self.assertTrue(by_arch["arm64"].startswith("sha256:"))
 
+    def test_an_app_id_outside_org_tunaos_is_indexed_under_its_repo_name(self):
+        # Compass keeps Vicinae's com.vicinae.Vicinae ID but publishes to
+        # ghcr.io/tuna-os/compass: the index Name is the registry path, and
+        # nothing may assume it matches the app ID.
+        labels = {
+            **FLATPAK_LABELS,
+            **APPSTREAM_LABELS,
+            "org.flatpak.ref": "app/com.vicinae.Vicinae/x86_64/master",
+            "org.flatpak.metadata": "[Application]\nname=com.vicinae.Vicinae\n",
+        }
+        index = {"Registry": "https://ghcr.io", "Results": []}
+        for name in ("tuna-os/mariner", "tuna-os/letters"):
+            _, entry = self.build_entry({**FLATPAK_LABELS, **APPSTREAM_LABELS})
+            update_index.merge_entry(index, name, entry)
+
+        _, entry = self.build_entry(labels, require_appstream=True)
+        update_index.merge_entry(index, "tuna-os/compass", entry)
+
+        names = [result["Name"] for result in index["Results"]]
+        self.assertEqual(names, ["tuna-os/compass", "tuna-os/letters", "tuna-os/mariner"])
+        compass = index["Results"][0]["Images"][0]["Labels"]
+        self.assertEqual(compass["org.flatpak.ref"], "app/com.vicinae.Vicinae/x86_64/master")
+        self.assertIn("org.freedesktop.appstream.appdata", compass)
+
     def test_read_oci_layout_missing_index_file(self):
         missing_dir = self.tmp / "nonexistent-oci"
         with self.assertRaises(FileNotFoundError):
