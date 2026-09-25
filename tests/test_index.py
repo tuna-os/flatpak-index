@@ -234,3 +234,197 @@ class ScreenshotCountTests(unittest.TestCase):
         )
         enriched = original.replace("</component>", remote_icon + "</component>")
         self.assertEqual(self.enrich.without_site_icon(enriched), original)
+
+
+class EnrichIndexTests(unittest.TestCase):
+    """Cover enrich() and main() in scripts/enrich-index.py."""
+
+    @staticmethod
+    def _load():
+        spec = importlib.util.spec_from_file_location(
+            "enrich_index", ROOT / "scripts" / "enrich-index.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def setUp(self):
+        self.enrich_mod = self._load()
+
+    def test_enrich_success_and_warnings(self):
+        catalogue = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<components version="0.8" origin="flatpak">'
+            '<component type="desktop-application">'
+            '<id>org.tunaos.demo</id>'
+            '</component></components>'
+        )
+        mock_registry = unittest.mock.MagicMock()
+        mock_registry.image_labels.return_value = {
+            "org.freedesktop.appstream.appdata": catalogue,
+            "org.freedesktop.appstream.icon-64": "data:image/png;base64,123",
+            "org.freedesktop.appstream.icon-128": "data:image/png;base64,456",
+        }
+        index_data = {
+            "Results": [
+                {
+                    "Name": "tuna-os/demo",
+                    "Images": [
+                        {
+                            "Architecture": "amd64",
+                            "Digest": "sha256:" + "a" * 64,
+                            "Labels": {},
+                        }
+                    ],
+                }
+            ]
+        }
+        updated, problems, warnings = self.enrich_mod.enrich(
+            index_data, mock_registry, verbose=False
+        )
+        self.assertEqual(updated, 1)
+        self.assertEqual(len(problems), 0)
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("no <screenshots> declared", warnings[0])
+
+    def test_enrich_registry_error_and_missing_metadata(self):
+        from oci import RegistryError
+
+        mock_registry = unittest.mock.MagicMock()
+        mock_registry.image_labels.side_effect = RegistryError("404 Not Found")
+        index_data = {
+            "Results": [
+                {
+                    "Name": "tuna-os/demo",
+                    "Images": [{"Architecture": "amd64", "Digest": "sha256:" + "a" * 64}],
+                }
+            ]
+        }
+        updated, problems, warnings = self.enrich_mod.enrich(
+            index_data, mock_registry, verbose=False
+        )
+        self.assertEqual(updated, 0)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("could not read labels", problems[0])
+
+        mock_registry.image_labels.side_effect = None
+        mock_registry.image_labels.return_value = {}
+        index_data_2 = {
+            "Results": [
+                {
+                    "Name": "tuna-os/demo",
+                    "Images": [{"Architecture": "amd64", "Digest": "sha256:" + "a" * 64, "Labels": {}}],
+                }
+            ]
+        }
+        updated, problems, warnings = self.enrich_mod.enrich(
+            index_data_2, mock_registry, verbose=False
+        )
+        self.assertEqual(updated, 0)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("image has no AppStream metadata", problems[0])
+
+    def test_main_check_mode(self):
+        import tempfile
+        from unittest.mock import patch
+
+        catalogue = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<components version="0.8" origin="flatpak">'
+            '<component type="desktop-application">'
+            '<id>org.tunaos.demo</id>'
+            '<screenshots><screenshot><image>https://e/1.png</image></screenshot></screenshots>'
+            '</component></components>'
+        )
+        index = {
+            "Registry": "https://ghcr.io",
+            "Results": [
+                {
+                    "Name": "tuna-os/demo",
+                    "Images": [
+                        {
+                            "Architecture": "amd64",
+                            "Digest": "sha256:" + "a" * 64,
+                            "Labels": {
+                                "org.freedesktop.appstream.appdata": catalogue,
+                                "org.freedesktop.appstream.icon-64": "icon64",
+                                "org.freedesktop.appstream.icon-128": "icon128",
+                            },
+                        }
+                    ],
+                }
+            ],
+        }
+
+        with tempfile.NamedTemporaryFile("w+", delete=False) as tmp:
+            json.dump(index, tmp)
+            tmp_path = Path(tmp.name)
+
+        try:
+            with patch.object(self.enrich_mod.Registry, "image_labels") as mock_labels:
+                mock_labels.return_value = {
+                    "org.freedesktop.appstream.appdata": catalogue,
+                    "org.freedesktop.appstream.icon-64": "icon64",
+                    "org.freedesktop.appstream.icon-128": "icon128",
+                }
+                with patch("sys.argv", ["enrich-index.py", str(tmp_path), "--check"]):
+                    res = self.enrich_mod.main()
+                    self.assertEqual(res, 0)
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+    def test_main_write_mode_and_check_failures(self):
+        import tempfile
+        from unittest.mock import patch
+
+        catalogue = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<components version="0.8" origin="flatpak">'
+            '<component type="desktop-application">'
+            '<id>org.tunaos.demo</id>'
+            '<screenshots><screenshot><image>https://e/1.png</image></screenshot></screenshots>'
+            '</component></components>'
+        )
+        index = {
+            "Registry": "https://ghcr.io",
+            "Results": [
+                {
+                    "Name": "tuna-os/demo",
+                    "Images": [
+                        {
+                            "Architecture": "amd64",
+                            "Digest": "sha256:" + "a" * 64,
+                            "Labels": {},
+                        }
+                    ],
+                }
+            ],
+        }
+
+        with tempfile.NamedTemporaryFile("w+", delete=False) as tmp:
+            json.dump(index, tmp)
+            tmp_path = Path(tmp.name)
+
+        try:
+            with patch.object(self.enrich_mod.Registry, "image_labels") as mock_labels:
+                mock_labels.return_value = {
+                    "org.freedesktop.appstream.appdata": catalogue,
+                    "org.freedesktop.appstream.icon-64": "icon64",
+                    "org.freedesktop.appstream.icon-128": "icon128",
+                }
+                with patch("sys.argv", ["enrich-index.py", str(tmp_path), "--check"]):
+                    res = self.enrich_mod.main()
+                    self.assertEqual(res, 1)
+
+                with patch("sys.argv", ["enrich-index.py", str(tmp_path)]):
+                    res = self.enrich_mod.main()
+                    self.assertEqual(res, 0)
+
+                with patch("sys.argv", ["enrich-index.py", str(tmp_path)]):
+                    res = self.enrich_mod.main()
+                    self.assertEqual(res, 0)
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+
+
