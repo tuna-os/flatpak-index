@@ -29,7 +29,7 @@ Cloudflare Pages serves the remote at `https://tunaos.org/flatpak/`. The files c
 | Dualcut | `flatpak install tuna-os org.tunaos.dualcut` |
 | Mandelbrot | `flatpak install tuna-os org.tunaos.mandelbrot` |
 | Tavern | `flatpak install tuna-os org.tunaos.tavern` |
-| Compass | `flatpak install tuna-os com.vicinae.Vicinae` |
+| Compass | `flatpak install tuna-os org.tunaos.compass` |
 | Installer (bootc-installer) | `flatpak install tuna-os org.bootcinstaller.Installer` |
 | Installer (KDE) | `flatpak install tuna-os org.tunaos.InstallerKde` |
 | Installer (Niri) | `flatpak install tuna-os org.tunaos.InstallerNiri` |
@@ -42,7 +42,7 @@ Cloudflare Pages serves the remote at `https://tunaos.org/flatpak/`. The files c
 
 > **Compass** is a hard fork of [Vicinae](https://github.com/vicinaehq/vicinae).
 > Its source is [tuna-os/compass](https://github.com/tuna-os/compass).
-> Compass keeps the Vicinae app ID, `com.vicinae.Vicinae`, so that old configuration still works.
+> On first start, Compass moves an existing Vicinae configuration into its own directory.
 > Its image is `ghcr.io/tuna-os/compass`.
 > It uses the `org.freedesktop.Platform//26.08` runtime from Flathub.
 

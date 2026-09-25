@@ -54,11 +54,12 @@ class AvailableAppsTests(unittest.TestCase):
         ids = [app_id for _, app_id in self.rows]
         self.assertEqual(len(ids), len(set(ids)))
 
-    def test_compass_keeps_the_vicinae_compatible_id(self):
+    def test_compass_uses_its_own_id(self):
         # Compass publishes under the ID its manifest declares
-        # (packaging/flatpak/com.vicinae.Vicinae.yaml in tuna-os/compass).
-        # An org.tunaos.compass row would install nothing.
-        self.assertIn(("Compass", "com.vicinae.Vicinae"), self.rows)
+        # (packaging/flatpak/org.tunaos.compass.yaml in tuna-os/compass).
+        # The old com.vicinae.Vicinae row would install nothing.
+        self.assertIn(("Compass", "org.tunaos.compass"), self.rows)
+        self.assertNotIn("com.vicinae.Vicinae", [app_id for _, app_id in self.rows])
 
 
 if __name__ == "__main__":
