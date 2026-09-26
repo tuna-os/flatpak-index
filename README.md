@@ -15,7 +15,7 @@ flatpak remote-modify --system --authenticator-name=org.flatpak.Authenticator.Oc
 
 Use `--user` instead of `--system` if you added the remote for your user.
 
-The remote is served via Cloudflare Pages from the [tuna-os/docs](https://github.com/tuna-os/docs) repo at `https://tunaos.org/flatpak/`.
+Cloudflare Pages serves the remote at `https://tunaos.org/flatpak/`. The files come from the [tuna-os/docs](https://github.com/tuna-os/docs) repo.
 
 ## Available apps
 
@@ -29,6 +29,7 @@ The remote is served via Cloudflare Pages from the [tuna-os/docs](https://github
 | Dualcut | `flatpak install tuna-os org.tunaos.dualcut` |
 | Mandelbrot | `flatpak install tuna-os org.tunaos.mandelbrot` |
 | Tavern | `flatpak install tuna-os org.tunaos.tavern` |
+| Compass | `flatpak install tuna-os org.tunaos.compass` |
 | Installer (bootc-installer) | `flatpak install tuna-os org.bootcinstaller.Installer` |
 | Installer (KDE) | `flatpak install tuna-os org.tunaos.InstallerKde` |
 | Installer (Niri) | `flatpak install tuna-os org.tunaos.InstallerNiri` |
@@ -38,6 +39,12 @@ The remote is served via Cloudflare Pages from the [tuna-os/docs](https://github
 > The installer frontends drive the [fisherman](https://github.com/projectbluefin/fisherman)
 > bootc backend and are preinstalled on the matching TunaOS live ISOs
 > (see `build_scripts/installer-frontend.sh` in [tuna-os/tunaOS](https://github.com/tuna-os/tunaOS)).
+
+> **Compass** is a hard fork of [Vicinae](https://github.com/vicinaehq/vicinae).
+> Its source is [tuna-os/compass](https://github.com/tuna-os/compass).
+> On first start, Compass moves an existing Vicinae configuration into its own directory.
+> Its image is `ghcr.io/tuna-os/compass`.
+> It uses the `org.freedesktop.Platform//26.08` runtime from Flathub.
 
 > **Note**: Letters, Tables and Decks are the Rust rewrite versions from [gtk-office-suite](https://github.com/tuna-os/gtk-office-suite). The office-suite manifests publish unsuffixed IDs (`org.tunaos.letters` etc.).
 > The legacy Python versions are at [tables](https://github.com/tuna-os/tables), [decks](https://github.com/tuna-os/decks), [letters](https://github.com/tuna-os/letters).
