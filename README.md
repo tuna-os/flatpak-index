@@ -294,3 +294,11 @@ The `index/static` file is a JSON array with OCI image references. Each entry ma
 > **Note:** the authoritative index is `static/flatpak/index/static` in the [tuna-os/docs](https://github.com/tuna-os/docs) repo, served at `https://tunaos.org/flatpak/`. The copy of `index/static` in *this* repo is a **historical snapshot** and is **not** what the remote serves — treat it as reference only. When the README's [Available apps](#available-apps) table and this snapshot disagree, the table (and tunaos.org) reflect the live remote.
 >
 > **This repo's own [GitHub Pages site](https://tuna-os.github.io/flatpak-index/) and the `tuna-os.flatpakrepo` file at its root are the same non-authoritative snapshot**, published as a live OCI remote (`oci+https://tuna-os.github.io/flatpak-index`). Do not `flatpak remote-add` that URL or this file — it will not receive new apps or updates. Always use the `https://tunaos.org/flatpak/tuna-os.flatpakrepo` remote from the [top of this README](#tunaos-flatpak-index).
+
+<!-- hive-contribute-plea: donated-compute appeal, keep in sync across repos -->
+## Contribute compute — no code needed
+
+No time to write code? You can still push this project's backlog forward. This repository is worked by TunaOS AI-agent hives: lend a hive your AI subscription or API tokens and your machine runs contributor tasks from this project's backlog.
+
+- 🪸 [Contribute compute to the reef hive](https://reef.tunaos.org/contribute)
+- 🏫 [Contribute compute to the school hive](https://school.tunaos.org/contribute)
