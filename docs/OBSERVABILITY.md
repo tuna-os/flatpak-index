@@ -1,43 +1,45 @@
-# Flatpak Index Observability Assessment & Stack Guidelines
+# Observability & Telemetry Assessment: flatpak-index
+
+This document defines the observability architecture, logging conventions, and telemetry stack guidelines for `flatpak-index`.
 
 ## Executive Summary
 
-`flatpak-index` provides static index definitions, OCI index generation scripts (`scripts/update-index.py`, `scripts/enrich-index.py`, `scripts/oci.py`), and Flatpak repository metadata for `tuna-os`. Because it runs primarily as static assets served over HTTPS or built via GitHub Actions CI/CD pipelines, no backend exporter (Prometheus, OpenTelemetry Collector) is currently deployed.
-
-This document outlines the current observability assessment, telemetry capabilities, service level objectives (SLOs), and recommended stack guidelines without introducing unconfirmed backend exporters or external data flows.
+`flatpak-index` is the canonical index management and AppStream metadata validation repository for Tuna OS Flatpak artifacts (`tuna-os/*`). It provides self-contained Python utilities (`scripts/update-index.py`, `scripts/enrich-index.py`, `scripts/oci.py`) used in automated CI/CD workflows and release publishing pipelines.
 
 ---
 
-## 1. Observability Assessment
+## Telemetry Stack Audit & Status
 
-| Dimension | Current State | Target State | Gap / Action Items |
-| :--- | :--- | :--- | :--- |
-| **Metrics** | Local script validation output and GitHub Actions step timings | Prometheus/OpenTelemetry metrics for index sync & OCI manifest publishing | Implement pipeline metric emission upon backend infrastructure confirmation |
-| **Logging** | Standard output/error logs from python scripts (`scripts/*.py`) and CI step logs | Structured JSON logging with severity levels for index parsing errors | Standardize script logging output for catalog drift detection |
-| **Tracing** | N/A (Static repository and CI jobs) | Distributed tracing for catalog generation pipelines | Not applicable for current batch CLI index scripts |
-| **Alerting** | GitHub Actions Workflow Failure Notifications | Automated alerts on catalog digest drift and unparseable AppStream metadata | Configure alerting rules for catalog build pipeline failures |
+### Backend Configuration
+- **Status**: No external telemetry backend is configured (Operator Targets: open-source=none, kube-native=none, commercial=none).
+- **Data Flow Policy**: Strict compliance with zero off-box data export policy. No telemetry exporter, OTLP endpoint, or external agent communication is active or allowed without explicit operator configuration.
 
----
-
-## 2. Service Level Objectives (SLOs) & SLIs
-
-### SLO 1: AppStream Metadata Validity Rate
-- **Definition**: The percentage of catalog entries in `index/static` and generated OCI labels that parse into valid AppStream XML components.
-- **SLI**: `(valid_appstream_catalogs / total_published_apps) * 100%`
-- **Target**: **99.9%** valid over a 30-day rolling window.
-
-### SLO 2: Catalog Build & Validation Pipeline Success
-- **Definition**: Successful execution of `scripts/enrich-index.py` and `tests/test_index.py` during CI runs on repository main branch updates.
-- **SLI**: `(successful_ci_index_builds / total_ci_index_builds) * 100%`
-- **Target**: **99.5%** pipeline success rate.
+### Current Logging Architecture
+- **Script Output**: Diagnostic outputs, layout warnings, and missing AppStream label notifications are currently emitted via `print()` statements to `stdout` and `stderr` (`sys.stderr`).
+- **Data Integrity**: Image entries and manifests in `index/static` carry OCI digests, architecture mappings, and AppStream label metadata (`org.freedesktop.appstream.*`).
 
 ---
 
-## 3. Recommended Stack Guidelines
+## Observability Guidelines & Standards
 
-1. **No Unconfirmed Backend Exporters**:
-   - In compliance with Operations policies, no backend metric exporter or external telemetry data flow is enabled until operator confirmation.
-2. **Local & CI Diagnostic Logging**:
-   - All python index tools (`enrich-index.py`, `update-index.py`) should output key metadata parsing errors to stderr using clear diagnostic formats.
-3. **Future Infrastructure Integration**:
-   - When a telemetry collector (e.g. OpenTelemetry or Prometheus Pushgateway) is provisioned for tuna-os infrastructure pipelines, index generation job metrics (duration, total apps, missing screenshot counts) should be exported via standard HTTP push endpoints.
+### Structured Logging Recommendations
+1. **Standardized Log Levels**: Transition script diagnostics from raw `print` statements to Python's standard `logging` library using structured log levels:
+   - `INFO`: Index updates, manifest parsing progress, tag merging.
+   - `WARNING`: Non-fatal missing AppStream metadata (`org.freedesktop.appstream.appdata`).
+   - `ERROR`: Invalid OCI layouts, missing `index.json`, missing required Flatpak labels (`org.flatpak.ref`, `org.flatpak.metadata`).
+2. **Contextual Metadata**: Format log entries to include repository name (`--repo-name`), OCI digest, target architecture, and operation status.
+
+### Tracing & Metrics Readiness (Future Roadmap)
+- **OpenTelemetry Wiring**: When an OpenTelemetry backend is provisioned by operators, instrument index build and enrichment pipelines with bounded spans tracking:
+  - `oci.layout.read`: OCI directory layout parsing and blob resolution.
+  - `index.merge`: Index entry insertion and deduplication.
+  - `appstream.validate`: Metainfo and label completeness verification.
+- **Metrics**: Instrument pipeline duration and validation error counters (`flatpak_index_build_duration_seconds`, `flatpak_index_validation_errors_total`).
+
+---
+
+## Governance & Compliance
+
+- **Credentials & Privacy**: Absolute prohibition against logging credentials, access tokens, API keys, or full environment dumps.
+- **Label Cardinality**: Attribute values and tags must remain strictly bounded to prevent metric cardinality explosion.
+- **Hold-Gated Mode**: All observability PRs in this repository are submitted in hold-gated mode requiring human review prior to merge.
