@@ -1,0 +1,28 @@
+name: Incident Report
+description: Report an operational incident or catalog build issue for flatpak-index
+title: "[Incident]: "
+labels: ["incident", "operations"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Incident Summary
+      description: What happened? Describe the impact on catalog builds or index synchronization.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: User / Operational Impact
+      description: Describe any affected downstream services or Flatpak clients.
+    validations:
+      required: true
+
+  - type: textarea
+    id: resolution
+    attributes:
+      label: Remediation / Mitigation
+      description: Steps taken to restore normal operation.
+    validations:
+      required: false
