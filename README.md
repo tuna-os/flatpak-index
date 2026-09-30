@@ -30,6 +30,8 @@ Cloudflare Pages serves the remote at `https://tunaos.org/flatpak/`. The files c
 | Mandelbrot | `flatpak install tuna-os org.tunaos.mandelbrot` |
 | Tavern | `flatpak install tuna-os org.tunaos.tavern` |
 | Compass | `flatpak install tuna-os org.tunaos.compass` |
+| BlueShell | `flatpak install tuna-os org.tunaos.BlueShell` |
+| Ghostty | `flatpak install tuna-os com.mitchellh.ghostty` |
 | Installer (bootc-installer) | `flatpak install tuna-os org.bootcinstaller.Installer` |
 | Installer (KDE) | `flatpak install tuna-os org.tunaos.InstallerKde` |
 | Installer (Niri) | `flatpak install tuna-os org.tunaos.InstallerNiri` |
