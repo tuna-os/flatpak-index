@@ -5,4 +5,6 @@ Homepage=https://github.com/tuna-os
 Comment=TunaOS Flatpak repository
 Description=GNOME office suite and utilities from tuna-os
 Icon=https://avatars.githubusercontent.com/u/196050174
-AuthenticatorName=org.flatpak.Authenticator.Oci
+## No AuthenticatorName: the backend registry is public GHCR, so installs work
+## without one (verified), and no authenticator fixes the known `remote-info`
+## 401 (see issue #96). Declaring one only sends users down a dead end.
