@@ -15,7 +15,7 @@ flatpak remote-modify --system --authenticator-name=org.flatpak.Authenticator.Oc
 
 Use `--user` instead of `--system` if you added the remote for your user.
 
-Cloudflare Pages serves the remote at `https://tunaos.org/flatpak/`. The files come from the [tuna-os/docs](https://github.com/tuna-os/docs) repo.
+Cloudflare Pages serves the remote at <https://tunaos.org/flatpak/>. The files come from the [tuna-os/docs](https://github.com/tuna-os/docs) repo.
 
 ## Available apps
 
@@ -37,7 +37,7 @@ Cloudflare Pages serves the remote at `https://tunaos.org/flatpak/`. The files c
 | Installer (XFCE) | `flatpak install tuna-os org.tunaos.InstallerXfce` |
 
 > The installer frontends drive the [fisherman](https://github.com/projectbluefin/fisherman)
-> bootc backend and are preinstalled on the matching TunaOS live ISOs
+> bootc backend. The matching TunaOS live ISOs include these frontends
 > (see `build_scripts/installer-frontend.sh` in [tuna-os/tunaOS](https://github.com/tuna-os/tunaOS)).
 
 > **Compass** is a hard fork of [Vicinae](https://github.com/vicinaehq/vicinae).
@@ -46,7 +46,7 @@ Cloudflare Pages serves the remote at `https://tunaos.org/flatpak/`. The files c
 > Its image is `ghcr.io/tuna-os/compass`.
 > It uses the `org.freedesktop.Platform//26.08` runtime from Flathub.
 
-> **Note**: Letters, Tables and Decks are the Rust rewrite versions from [gtk-office-suite](https://github.com/tuna-os/gtk-office-suite). The office-suite manifests publish unsuffixed IDs (`org.tunaos.letters` etc.).
+> **Note**: Letters, Tables and Decks are Rust rewrite versions from [gtk-office-suite](https://github.com/tuna-os/gtk-office-suite). The manifests use unsuffixed IDs (`org.tunaos.letters` etc.).
 > The legacy Python versions are at [tables](https://github.com/tuna-os/tables), [decks](https://github.com/tuna-os/decks), [letters](https://github.com/tuna-os/letters).
 
 ---
@@ -203,9 +203,9 @@ jobs:
 Also vendor [`scripts/update-index.py`](scripts/update-index.py) from this repo
 to `.github/scripts/update-index.py`, or use the `update-flatpak-index` action
 from `tuna-os/.github` (`tuna-os/.github/actions/update-flatpak-index`). The script
-in this repository is the canonical standalone single-file implementation — do not
-copy an older version from another app repository, and see
-[App metadata](#app-metadata) for why.
+in this repository is the canonical single-file implementation. Do not
+copy an older version from another app repository; see
+[App metadata](#app-metadata) for details.
 
 ### 4. Set repo secrets
 
@@ -217,7 +217,7 @@ copy an older version from another app repository, and see
 gh secret set FLATPAK_INDEX_TOKEN --repo tuna-os/<app>
 ```
 
-Enter the fine-grained token at the prompt. Avoid putting token values in command
+Enter the fine-grained token at the prompt. Do not place token values in command
 arguments, repository URLs, or documentation.
 
 ### 5. Push to trigger the build
@@ -243,31 +243,30 @@ OCI remote that metadata travels as three image labels —
 `/app/share/metainfo/<app-id>.metainfo.xml`.
 
 The publisher must copy those labels into `index/static`. If it does not,
-flatpak has nothing to build a catalogue from and every app in the remote shows
-up as a bare application ID with an "Unknown" licence and no screenshots.
+flatpak cannot build a catalogue. Every app in the remote then shows
+as a bare application ID with an "Unknown" licence and no screenshots.
 
-- **Writing a metainfo file:** [`docs/METAINFO.md`](docs/METAINFO.md), starting
-  from [`templates/org.tunaos.example.metainfo.xml`](templates/org.tunaos.example.metainfo.xml).
+- **Metainfo file guide:** [`docs/METAINFO.md`](docs/METAINFO.md), based
+  on [`templates/org.tunaos.example.metainfo.xml`](templates/org.tunaos.example.metainfo.xml).
   It follows [Flathub's quality guidelines](https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines),
-  which is the bar software centres render against.
-- **Screenshots:** [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md) — the shared
-  [capture action](.github/actions/capture-screenshots) photographs an app's own
-  window under a headless X server, so screenshots are generated in CI from the
-  real app rather than taken by hand. The audit below reports apps that declare
-  none.
-- **Auditing the live remote:**
+  which sets the standard for software centres.
+- **Screenshots:** [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md). The shared
+  [capture action](.github/actions/capture-screenshots) takes pictures of an app
+  window under a headless X server. CI generates screenshots from the app directly
+  instead of by hand. The audit below reports apps that declare none.
+- **Audit the live remote:**
 
-  ```bash
-  curl -sSfL -o served-index.json https://tunaos.org/flatpak/index/static
-  ./scripts/enrich-index.py served-index.json --check
-  ```
+```bash
+curl -sSfL -o served-index.json https://tunaos.org/flatpak/index/static
+./scripts/enrich-index.py served-index.json --check
+```
 
   This reports any published image whose metadata is missing from the index, or
   that has no metadata at all. Run daily by
   [`check-metadata.yml`](.github/workflows/check-metadata.yml).
-- **Repairing an index in place:** `./scripts/enrich-index.py <index-file>`
-  re-reads the labels from the registry and writes them back. It only touches
-  the digests already listed, so the set of published images is unchanged.
+- **Repair an index in place:** `./scripts/enrich-index.py <index-file>`
+  reads labels from the registry and writes them back. It only touches listed
+  digests, which keeps the set of published images unchanged.
 
 ## Architecture
 
@@ -291,9 +290,9 @@ ghcr.io/tuna-os/<app>         → OCI images with flatpak metadata
 
 The `index/static` file is a JSON array with OCI image references. Each entry maps an app name to its manifest digest and flatpak metadata labels. Flatpak downloads this index, finds the right image by app ID and architecture, then pulls it from the GHCR registry.
 
-> **Note:** the authoritative index is `static/flatpak/index/static` in the [tuna-os/docs](https://github.com/tuna-os/docs) repo, served at `https://tunaos.org/flatpak/`. The copy of `index/static` in *this* repo is a **historical snapshot** and is **not** what the remote serves — treat it as reference only. When the README's [Available apps](#available-apps) table and this snapshot disagree, the table (and tunaos.org) reflect the live remote.
+> **Note:** The authoritative index is `static/flatpak/index/static` in the [tuna-os/docs](https://github.com/tuna-os/docs) repo, served at <https://tunaos.org/flatpak/>. The copy of `index/static` in this repo is a **historical snapshot**, not what the remote serves. Treat it as reference only; the table (and tunaos.org) reflect the live remote.
 >
-> **This repo's own [GitHub Pages site](https://tuna-os.github.io/flatpak-index/) and the `tuna-os.flatpakrepo` file at its root are the same non-authoritative snapshot**, published as a live OCI remote (`oci+https://tuna-os.github.io/flatpak-index`). Do not `flatpak remote-add` that URL or this file — it will not receive new apps or updates. Always use the `https://tunaos.org/flatpak/tuna-os.flatpakrepo` remote from the [top of this README](#tunaos-flatpak-index).
+> **This repo's [GitHub Pages site](https://tuna-os.github.io/flatpak-index/) and root `tuna-os.flatpakrepo` file are a non-authoritative snapshot.** Do not use `flatpak remote-add` on that URL or file. Always use the remote URL <https://tunaos.org/flatpak/tuna-os.flatpakrepo> from the [top of this README](#tunaos-flatpak-index).
 
 <!-- hive-contribute-plea: donated-compute appeal, keep in sync across repos -->
 ## Contribute compute — no code needed

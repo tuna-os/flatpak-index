@@ -1,10 +1,10 @@
 # Contributing to flatpak-index
 
-Thanks for helping with the TunaOS Flatpak index. This repository holds the
-scripts, templates, and CI actions that build and audit the OCI-based Flatpak
-remote described in [README.md](README.md) — it is not itself the live index
-(the authoritative one is served from `tuna-os/docs`; see the README's
-"Index format" section for that distinction).
+Thank you for your work on the TunaOS Flatpak index. This repository holds
+scripts, templates, and CI actions to build and audit the Flatpak remote in
+[README.md](README.md). It is not the live index. Cloudflare Pages serves the
+live index from `tuna-os/docs`; see the README's "Index format" section for
+that distinction.
 
 ## Repository layout
 
@@ -19,7 +19,7 @@ remote described in [README.md](README.md) — it is not itself the live index
 
 ## Development
 
-Requires Python 3.11+ and the standard library only — no extra dependencies
+You need Python 3.11+ and the standard library only — no extra dependencies
 to install.
 
 Run the test suite locally:
@@ -28,8 +28,8 @@ Run the test suite locally:
 python3 -m unittest discover -s tests -v
 ```
 
-Audit the live remote's index against what's actually published (does not
-require any local setup beyond `curl`):
+Audit the live remote index against what the registry publishes (this
+check needs no local setup beyond `curl`):
 
 ```bash
 curl -sSfL -o served-index.json https://tunaos.org/flatpak/index/static
@@ -40,19 +40,18 @@ curl -sSfL -o served-index.json https://tunaos.org/flatpak/index/static
 
 1. Branch from `main`.
 2. Keep `scripts/update-index.py` self-contained (one file, standard library
-   only) — application repos vendor it directly, so a new dependency or a
-   split across files breaks every consumer's copy.
-3. If you change the `update-index.py` or `enrich-index.py` CLI/contract,
-   check the README's "How to add a new Flatpak" walkthrough and
-   `docs/METAINFO.md`/`docs/SCREENSHOTS.md` for anywhere that needs updating
-   too.
-4. Run `python3 -m unittest discover -s tests -v` before opening a PR; add
+   only). Application repos vendor it directly; a new dependency or file split
+   breaks every consumer.
+3. If you change the CLI contract for `update-index.py` or `enrich-index.py`,
+   check the docs. Update the README, `docs/METAINFO.md`, and
+   `docs/SCREENSHOTS.md` if needed.
+4. Run `python3 -m unittest discover -s tests -v` before you open a PR; add
    or extend tests under `tests/` for any behavior change.
-5. Open a PR describing what changed and why, and link any related issue.
+5. Open a PR that describes what changed and why, and link any related issue.
 
-Changes to the **production** index (`static/flatpak/index/static`) itself
-belong in `tuna-os/docs` or in the publishing workflow of the application
-repo being published, not here — see the README's "Index format" note.
+Changes to the **production** index (`static/flatpak/index/static`) belong in
+`tuna-os/docs` or in the publish workflow of the target application
+repository. Do not change it here; see the README's "Index format" note.
 
 ## Questions or problems
 
