@@ -22,10 +22,11 @@ remote described in [README.md](README.md) — it is not itself the live index
 Requires Python 3.11+ and the standard library only — no extra dependencies
 to install.
 
-Run the test suite locally:
+Run the test suite and lint locally:
 
 ```bash
 python3 -m unittest discover -s tests -v
+ruff check .
 ```
 
 Audit the live remote's index against what's actually published (does not
@@ -46,8 +47,8 @@ curl -sSfL -o served-index.json https://tunaos.org/flatpak/index/static
    check the README's "How to add a new Flatpak" walkthrough and
    `docs/METAINFO.md`/`docs/SCREENSHOTS.md` for anywhere that needs updating
    too.
-4. Run `python3 -m unittest discover -s tests -v` before opening a PR; add
-   or extend tests under `tests/` for any behavior change.
+4. Run `python3 -m unittest discover -s tests -v` and `ruff check .` before
+   opening a PR; add or extend tests under `tests/` for any behavior change.
 5. Open a PR describing what changed and why, and link any related issue.
 
 Changes to the **production** index (`static/flatpak/index/static`) itself
