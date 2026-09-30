@@ -78,11 +78,13 @@ class RepositoryDescriptorTests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertTrue(self.repo.get(field))
 
-    def test_oci_authenticator_is_declared(self):
-        self.assertEqual(
-            self.repo.get("AuthenticatorName"),
-            "org.flatpak.Authenticator.Oci",
-        )
+    def test_no_authenticator_is_declared(self):
+        # The backend registry is public GHCR: installs were verified to work
+        # with and without org.flatpak.Authenticator.Oci, while `remote-info`
+        # returns 401 either way (issue #96 — a flatpak client limitation, not
+        # a missing authenticator). Declaring one only sends users down a
+        # privileged dead end, so the descriptor must not name one.
+        self.assertIsNone(self.repo.get("AuthenticatorName"))
 
     def test_remote_uses_oci_over_https(self):
         self.assertTrue(self.repo["Url"].startswith("oci+https://"))

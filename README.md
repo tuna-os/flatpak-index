@@ -7,13 +7,18 @@ flatpak remote-add --if-not-exists tuna-os https://tunaos.org/flatpak/tuna-os.fl
 flatpak install tuna-os org.tunaos.mariner
 ```
 
-If your existing `tuna-os` remote returns HTTP 401, add the OCI authenticator:
+> **Note:** `flatpak remote-info` against this remote returns `error: Server
+> returned status 401`. That is a known limitation of the flatpak client
+> with OCI remotes (it fetches the manifest without the registry token
+> handshake), not a broken remote — see
+> [#96](https://github.com/tuna-os/flatpak-index/issues/96).
+> The OCI authenticator does not change it. Check the remote with
+> `flatpak remote-ls` or with an install instead.
 
-```bash
-flatpak remote-modify --system --authenticator-name=org.flatpak.Authenticator.Oci tuna-os
-```
-
-Use `--user` instead of `--system` if you added the remote for your user.
+Add the remote with `--user` for a user installation, or `--system` (with
+sudo) for the whole machine. Then use the same scope to install and update.
+A user-scope remote needs `flatpak update --user`: plain `flatpak update`
+checks the system scope and reports nothing to update.
 
 Cloudflare Pages serves the remote at `https://tunaos.org/flatpak/`. The files come from the [tuna-os/docs](https://github.com/tuna-os/docs) repo.
 
