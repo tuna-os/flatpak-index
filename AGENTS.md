@@ -40,6 +40,13 @@ Bazaar, GNOME Software and Discover as a bare `org.tunaos.<app>` string with an
 "Unknown" licence and no screenshots, despite a complete catalogue already
 being published. Do not narrow that tuple.
 
+`scripts/oci.py` declares the same rule independently as
+`FLATPAK_LABEL_PREFIX`/`APPSTREAM_LABEL_PREFIX` and `keep_label()`, used by
+`enrich-index.py` to audit the *live* remote against the registry.
+`update-index.py` can't import `oci.py` (see below), so this is two
+declarations of one invariant. `tests/test_label_policy.py` pins them to each
+other — update both together, and let that test tell you if they've drifted.
+
 ## Three copies of one script
 
 `scripts/update-index.py` describes itself as *the canonical copy*, vendored by
