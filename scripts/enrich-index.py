@@ -28,6 +28,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from oci import APPSTREAM_LABELS, Registry, RegistryError, filter_labels  # noqa: E402
 
 APPDATA_LABEL = "org.freedesktop.appstream.appdata"
+# Cross-repo contract with tuna-os/docs: Bazaar (docs site's software catalog)
+# adds remote icon URLs to AppStream XML during build to enable icon display.
+# This regex matches that transformation. If tuna-os/docs changes the format,
+# this pattern must be updated and tests/test_index.py::without_site_icon must
+# verify it against the actual output.
+# See: https://github.com/tuna-os/flatpak-index/issues/105
 SITE_ICON = re.compile(
     r'    <icon type="remote" width="128" height="128">'
     r'https://tunaos\.org/flatpak/icons/[A-Za-z0-9._-]+\.png</icon>\n'
@@ -35,7 +41,16 @@ SITE_ICON = re.compile(
 
 
 def without_site_icon(appdata):
-    """Remove the Bazaar-compatible URL that the docs site adds at build."""
+    """Remove remote icon URLs added by the docs site build.
+    
+    The tuna-os/docs Bazaar integration injects remote icon URLs into AppStream
+    XML during build. This function removes them to compare the canonical
+    registry AppStream (without injected icons) against the served index.
+    
+    Contract: This function must be tested against actual docs output to ensure
+    the SITE_ICON pattern remains in sync if docs build changes.
+    See tests/test_index.py for verification.
+    """
     return SITE_ICON.sub("", appdata)
 
 

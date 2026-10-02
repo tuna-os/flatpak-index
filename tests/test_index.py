@@ -227,6 +227,17 @@ class ScreenshotCountTests(unittest.TestCase):
         self.assertIsNone(self.enrich.screenshot_count("<components><broken"))
 
     def test_site_icon_extension_does_not_make_catalogue_stale(self):
+        """Verify cross-repo contract with tuna-os/docs Bazaar integration.
+        
+        tuna-os/docs injects remote icon URLs into AppStream during build to
+        enable icon display in Bazaar (docs site's software catalog). This test
+        verifies that enrich-index correctly strips those injected icons when
+        comparing canonical registry AppStream against the served index.
+        
+        If tuna-os/docs changes the icon injection format, this test will catch
+        the divergence and enrich-index.py::SITE_ICON must be updated.
+        See: https://github.com/tuna-os/flatpak-index/issues/105
+        """
         original = self.catalogue("<name>Demo</name>")
         remote_icon = (
             '    <icon type="remote" width="128" height="128">'
