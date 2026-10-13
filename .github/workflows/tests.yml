@@ -54,7 +54,7 @@ jobs:
   capture-action-dnf:
     name: capture action (dnf)
     runs-on: ubuntu-latest
-    container: fedora:45
+    container: fedora:46
     steps:
       - name: Install git first
         run: dnf -y install git
