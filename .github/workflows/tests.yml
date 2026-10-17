@@ -14,10 +14,25 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.15"
+      - name: Install ruff
+        run: pip install ruff
+      - name: Run ruff check
+        run: ruff check .
   unittest:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v7
         with:
           python-version: "3.15"
@@ -39,6 +54,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Install the test client
         # xclock lives in x11-apps on Debian; the action installs x11-utils,
         # which is a different package.
@@ -63,6 +80,8 @@ jobs:
       - name: Install git first
         run: dnf -y install git
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Install the test client
         run: dnf -y install xclock
       - uses: ./.github/actions/capture-screenshots
