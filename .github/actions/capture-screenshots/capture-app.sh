@@ -40,11 +40,16 @@ DISPLAY_NUM="${DISPLAY_NUM:-$(pick_display)}"
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
 
-Xvfb "$DISPLAY_NUM" -screen 0 "${GEOM}x24" >/tmp/xvfb.log 2>&1 &
+LOG_DIR="$(mktemp -d "${TMPDIR:-/tmp}/capture-app.XXXXXXXXXX")"
+XVFB_LOG="$LOG_DIR/xvfb.log"
+APP_LOG="$LOG_DIR/app.log"
+
+Xvfb "$DISPLAY_NUM" -screen 0 "${GEOM}x24" >"$XVFB_LOG" 2>&1 &
 XVFB_PID=$!
 cleanup() {
   [ -n "${APP_PID:-}" ] && kill "$APP_PID" 2>/dev/null || true
   kill "$XVFB_PID" 2>/dev/null || true
+  rm -rf "$LOG_DIR"
 }
 trap cleanup EXIT
 export DISPLAY="$DISPLAY_NUM"
@@ -52,10 +57,10 @@ export DISPLAY="$DISPLAY_NUM"
 # Wait for the X server itself before starting the app, rather than sleeping a
 # fixed amount and hoping.
 for _ in $(seq 50); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.2; done
-xdpyinfo >/dev/null 2>&1 || { echo "capture-app.sh: Xvfb never came up" >&2; exit 1; }
+xdpyinfo >/dev/null 2>&1 || { echo "capture-app.sh: Xvfb never came up" >&2; [ -f "$XVFB_LOG" ] && tail -20 "$XVFB_LOG" >&2; exit 1; }
 
 export GDK_BACKEND=x11 QT_QPA_PLATFORM=xcb
-"$@" >/tmp/app.log 2>&1 &
+"$@" >"$APP_LOG" 2>&1 &
 APP_PID=$!
 
 # Wait for the app to map a window OF ITS OWN.
@@ -80,7 +85,7 @@ WIN=""
 for _ in $(seq $((SETTLE * 10))); do
   if ! kill -0 "$APP_PID" 2>/dev/null; then
     echo "capture-app.sh: app exited before showing a window" >&2
-    tail -20 /tmp/app.log >&2; exit 1
+    tail -20 "$APP_LOG" >&2; exit 1
   fi
   WIN="$(xdotool search --onlyvisible --pid "$APP_PID" 2>/dev/null | tail -1 || true)"
   [ -n "$WIN" ] || WIN="$(xdotool search --onlyvisible --any-pid-descendant "$APP_PID" 2>/dev/null | tail -1 || true)"
@@ -90,7 +95,7 @@ for _ in $(seq $((SETTLE * 10))); do
 done
 if [ -z "$WIN" ]; then
   echo "capture-app.sh: no window appeared within $((SETTLE * 2))s" >&2
-  tail -20 /tmp/app.log >&2; exit 1
+  tail -20 "$APP_LOG" >&2; exit 1
 fi
 
 # Fit the window to the screen and square it into the corner, so the capture is
@@ -115,7 +120,7 @@ if [ "$COLOURS" -lt 8 ]; then
   # Remove it: a blank PNG left on disk gets committed and published as though
   # it were a real screenshot.
   rm -f "$OUT/$NAME.png"
-  tail -20 /tmp/app.log >&2
+  tail -20 "$APP_LOG" >&2
   exit 1
 fi
 
