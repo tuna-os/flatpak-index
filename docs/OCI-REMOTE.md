@@ -21,13 +21,20 @@ Our index lives at `https://tunaos.org/flatpak/index/static`. It names
 
 ## The Remote Descriptor
 
-Our `tuna-os.flatpakrepo` sets `Url` to the `oci+` form of
-<https://tunaos.org/flatpak>.
-It declares no `AuthenticatorName`. Our backend registry is public GHCR.
-Installs work without one (verified with flatpak 1.14.6). No authenticator
-fixes the known `remote-info` 401 (see
+The `tuna-os/docs` repository supplies the production descriptor at
+<https://tunaos.org/flatpak/tuna-os.flatpakrepo>. It sets `Url` to the
+`oci+` form of <https://tunaos.org/flatpak> and now declares
+`AuthenticatorName=org.flatpak.Authenticator.Oci` so Flatpak can get an
+anonymous token from GHCR.
+
+Do not confuse that production descriptor with this repository's root
+`tuna-os.flatpakrepo`. The root file is a snapshot on GitHub Pages that is not
+authoritative and intentionally has no `AuthenticatorName`.
+
+The authenticator does not fix the known `remote-info` 401 (see
 [tuna-os/flatpak-index#96](https://github.com/tuna-os/flatpak-index/issues/96)).
-Do not re-add one.
+That client path fetches the manifest without the registry token handshake.
+Keep the authenticator in the production descriptor.
 
 ## Install and Update (Client Side)
 
