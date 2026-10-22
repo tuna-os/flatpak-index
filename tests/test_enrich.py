@@ -218,6 +218,42 @@ class ScreenshotCountTests(unittest.TestCase):
     def test_unparseable_catalogue_is_none(self):
         self.assertIsNone(enrich_index.screenshot_count("<components><broken"))
 
+    def test_billion_laughs_doctype_is_none(self):
+        catalogue = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<!DOCTYPE lolz ['
+            '<!ENTITY lol "lol">'
+            '<!ENTITY lol2 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">]'
+            "><components><component><id>x</id>"
+            "<screenshots><screenshot>x</screenshot></screenshots>"
+            "</component></components>&lol2;"
+        )
+        self.assertIsNone(enrich_index.screenshot_count(catalogue))
+
+    def test_external_entity_doctype_is_none(self):
+        catalogue = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<!DOCTYPE components ['
+            '<!ENTITY xxe SYSTEM "file:///etc/hostname">'
+            "]>"
+            "><components><component><id>x</id>"
+            "<screenshots><screenshot>x</screenshot></screenshots>"
+            "</component></components>&xxe;"
+        )
+        self.assertIsNone(enrich_index.screenshot_count(catalogue))
+
+    def test_doctype_text_inside_comment_is_not_rejected(self):
+        # A <!DOCTYPE> written inside a comment is text, not a declaration. The
+        # parser-based rejection must not treat it as a real DTD.
+        catalogue = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            "<components><component><id>x</id>"
+            "<!-- documentation only: <!DOCTYPE foo> -->"
+            "<screenshots><screenshot>x</screenshot></screenshots>"
+            "</component></components>"
+        )
+        self.assertEqual(enrich_index.screenshot_count(catalogue), 1)
+
     def test_site_icon_extension_does_not_make_catalogue_stale(self):
         original = self.catalogue("<name>Demo</name>")
         remote_icon = (
@@ -404,6 +440,106 @@ class EnrichIndexTests(unittest.TestCase):
                     self.assertEqual(res, 0)
         finally:
             tmp_path.unlink(missing_ok=True)
+
+
+
+    def test_main_skips_write_on_registry_error(self):
+        # A registry read failure leaves reconciliation incomplete; main() must
+        # refuse to write and report failure, leaving the index byte-for-byte
+        # as it was.
+        index = {
+            "Registry": "https://ghcr.io",
+            "Results": [
+                {
+                    "Name": "tuna-os/demo",
+                    "Images": [
+                        {
+                            "Architecture": "amd64",
+                            "Digest": "sha256:" + "a" * 64,
+                            "Labels": {},
+                        }
+                    ],
+                }
+            ],
+        }
+        with tempfile.NamedTemporaryFile("w+", delete=False) as tmp:
+            json.dump(index, tmp)
+            tmp_path = Path(tmp.name)
+        original = tmp_path.read_text()
+        try:
+            with (
+                patch.object(
+                    enrich_index.Registry, "image_labels",
+                    side_effect=RegistryError("404 Not Found"),
+                ),
+                patch("sys.argv", ["enrich-index.py", str(tmp_path)]),
+            ):
+                res = enrich_index.main()
+                self.assertEqual(res, 1)
+            self.assertEqual(tmp_path.read_text(), original)
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+    def test_main_write_is_atomic_no_temp_left_behind(self):
+        catalogue = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<components version="0.8" origin="flatpak">'
+            '<component type="desktop-application">'
+            '<id>org.tunaos.demo</id>'
+            '<screenshots><screenshot><image>https://e/1.png</image></screenshot></screenshots>'
+            '</component></components>'
+        )
+        index = {
+            "Registry": "https://ghcr.io",
+            "Results": [
+                {
+                    "Name": "tuna-os/demo",
+                    "Images": [
+                        {
+                            "Architecture": "amd64",
+                            "Digest": "sha256:" + "a" * 64,
+                            "Labels": {},
+                        }
+                    ],
+                }
+            ],
+        }
+        with tempfile.NamedTemporaryFile("w+", delete=False) as tmp:
+            json.dump(index, tmp)
+            tmp_path = Path(tmp.name)
+        original = tmp_path.read_text()
+        try:
+            with patch.object(enrich_index.Registry, "image_labels") as mock_labels:
+                mock_labels.return_value = {
+                    "org.freedesktop.appstream.appdata": catalogue,
+                    "org.freedesktop.appstream.icon-64": "icon64",
+                    "org.freedesktop.appstream.icon-128": "icon128",
+                }
+                with patch("sys.argv", ["enrich-index.py", str(tmp_path)]):
+                    res = enrich_index.main()
+                    self.assertEqual(res, 0)
+            new = json.loads(tmp_path.read_text())
+            labels = new["Results"][0]["Images"][0]["Labels"]
+            self.assertIn("org.freedesktop.appstream.appdata", labels)
+            self.assertNotEqual(tmp_path.read_text(), original)
+            self.assertEqual(list(tmp_path.parent.glob(f".{tmp_path.name}.*.tmp")), [])
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+    def test_write_index_atomic_cleans_up_on_failure(self):
+        # If the write fails after the temp file exists, the temp file must be
+        # removed and the original index left untouched.
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "index.json"
+            path.write_text("{}\n")
+            before = sorted(p.name for p in Path(d).iterdir())
+            with (
+                patch.object(enrich_index.os, "replace", side_effect=OSError("boom")),
+                self.assertRaises(OSError),
+            ):
+                enrich_index.write_index_atomic(path, {"a": 1})
+            self.assertEqual(sorted(p.name for p in Path(d).iterdir()), before)
+            self.assertEqual(path.read_text(), "{}\n")
 
 
 if __name__ == "__main__":

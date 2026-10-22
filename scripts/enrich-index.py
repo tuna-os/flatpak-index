@@ -16,10 +16,13 @@ maps grow.
 """
 
 import argparse
+import contextlib
 import json
 import os
 import re
 import sys
+import tempfile
+import xml.parsers.expat as expat
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -39,24 +42,59 @@ def without_site_icon(appdata):
     return SITE_ICON.sub("", appdata)
 
 
+class ForbiddenDTD(ElementTree.ParseError):
+    """An AppStream catalogue declared a DOCTYPE.
+
+    A DOCTYPE enables XML-external-entity and entity-expansion ("billion
+    laughs") attacks; AppStream catalogues never declare one, so its presence
+    is treated as unparseable.
+    """
+
+
+def _reject_dtd(*_args):
+    raise ForbiddenDTD("DOCTYPE not permitted in AppStream catalogue")
+
+
+def _parse_appdata(appdata):
+    """Parse AppStream XML, rejecting any DOCTYPE (XXE / entity-expansion bomb).
+
+    Routes the raw expat parser into ElementTree's tree builder so the DOCTYPE
+    and external-entity handlers fire before any entity can expand. stdlib only:
+    ElementTree.XMLParser does not expose doctype handling.
+    """
+    builder = ElementTree.XMLParser().target
+    parser = expat.ParserCreate()
+    parser.StartElementHandler = builder.start
+    parser.EndElementHandler = builder.end
+    parser.CharacterDataHandler = builder.data
+    parser.StartDoctypeDeclHandler = _reject_dtd
+    parser.EndDoctypeDeclHandler = _reject_dtd
+    parser.ExternalEntityRefHandler = _reject_dtd
+    parser.Parse(appdata, True)
+    return builder.close()
+
+
 def screenshot_count(appdata):
     """Number of <screenshot> entries in an AppStream catalogue, or None.
 
-    None means the catalogue could not be parsed, which is a different
-    problem from an app that simply ships no screenshots.
+    None means the catalogue could not be parsed -- including a DOCTYPE-bearing,
+    i.e. potentially malicious catalogue -- which is a different problem from an
+    app that simply ships no screenshots.
     """
     try:
-        root = ElementTree.fromstring(appdata)
-    except ElementTree.ParseError:
+        root = _parse_appdata(appdata)
+    except (ElementTree.ParseError, expat.ExpatError):
         return None
     return len(root.findall(".//screenshot"))
 
 
-def enrich(index_data, registry, verbose=True):
+def enrich(index_data, registry, verbose=True, registry_errors=None):
     """Merge registry labels into every image entry.
 
     Returns (updated, problems, warnings). Problems are things that make an
-    entry wrong; warnings are things that make it look bad.
+    entry wrong; warnings are things that make it look bad. When ``registry_errors``
+    is a list, each registry read failure is appended to it so the caller can
+    refuse to write a partially reconciled index.
     """
     updated = 0
     problems = []
@@ -70,7 +108,10 @@ def enrich(index_data, registry, verbose=True):
             try:
                 registry_labels = filter_labels(registry.image_labels(repository, digest))
             except RegistryError as error:
-                problems.append(f"{label}: could not read labels -- {error}")
+                message = f"{label}: could not read labels -- {error}"
+                problems.append(message)
+                if registry_errors is not None:
+                    registry_errors.append(message)
                 continue
 
             missing = [name for name in APPSTREAM_LABELS if name not in registry_labels]
@@ -115,6 +156,28 @@ def enrich(index_data, registry, verbose=True):
     return updated, problems, warnings
 
 
+def write_index_atomic(path, data):
+    """Serialize ``data`` to ``path`` atomically via a temp file + ``os.replace``.
+
+    ``os.replace`` is atomic on POSIX, so a concurrent reader sees either the old
+    complete index or the new one, never a half-written file. The temp file is
+    created in the same directory so ``os.replace`` stays on one filesystem, and
+    its mode is matched to the destination so the index keeps its permissions.
+    """
+    payload = json.dumps(data, indent=2) + "\n"
+    fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as tmp:
+            tmp.write(payload)
+        with contextlib.suppress(FileNotFoundError):
+            os.chmod(tmp_name, os.stat(path).st_mode)
+        os.replace(tmp_name, path)
+    except BaseException:
+        with contextlib.suppress(FileNotFoundError):
+            os.unlink(tmp_name)
+        raise
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("index_file", type=Path, help="Path to the index/static file")
@@ -134,7 +197,8 @@ def main():
     registry = Registry(index_data["Registry"], token=args.token)
 
     print(f"Reading labels from {index_data['Registry']}")
-    updated, problems, warnings = enrich(index_data, registry)
+    registry_errors = []
+    updated, problems, warnings = enrich(index_data, registry, registry_errors=registry_errors)
 
     for warning in warnings:
         print(f"  ~ {warning}", file=sys.stderr)
@@ -149,8 +213,14 @@ def main():
         print("\nIndex is up to date with the registry.")
         return 0
 
-    if updated:
-        args.index_file.write_text(json.dumps(index_data, indent=2) + "\n")
+    if registry_errors:
+        print(
+            f"\nSkipped write: {len(registry_errors)} registry error(s) left "
+            f"reconciliation incomplete. Re-run once they clear so the whole "
+            f"index updates atomically."
+        )
+    elif updated:
+        write_index_atomic(args.index_file, index_data)
         print(f"\nWrote {args.index_file}: {updated} image(s) updated.")
     else:
         print("\nNothing to do.")
