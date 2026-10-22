@@ -50,7 +50,8 @@ Never post account credentials or API keys in issues or pull requests.
 | Mandelbrot | `flatpak install tuna-os org.tunaos.mandelbrot` |
 | Tavern | `flatpak install tuna-os org.tunaos.tavern` |
 | Compass | `flatpak install tuna-os org.tunaos.compass` |
-| BlueShell | `flatpak install tuna-os org.tunaos.BlueShell` |
+| BlueShell | `flatpak install tuna-os org.tunaos.blueshell` |
+| Quickcast | `flatpak install tuna-os org.tunaos.Quickcast` |
 | Ghostty | `flatpak install tuna-os com.mitchellh.ghostty` |
 | Installer (bootc-installer) | `flatpak install tuna-os org.bootcinstaller.Installer` |
 | Installer (KDE) | `flatpak install tuna-os org.tunaos.InstallerKde` |
@@ -243,6 +244,11 @@ gh secret set FLATPAK_INDEX_TOKEN --repo tuna-os/<app>
 
 Enter the fine-grained token at the prompt. Do not place token values in command
 arguments, repository URLs, or documentation.
+
+Register the app in `tuna-os/docs` `static/flatpak/expected-apps.json` with its
+required architectures, and add its exact published ID to the Available apps
+table above. The daily remote check compares that table to the served index
+in both directions.
 
 ### 5. Push to trigger the build
 

@@ -20,7 +20,11 @@ run: curl -sSfL -o served-index.json https://tunaos.org/flatpak/index/static
 run: ./scripts/enrich-index.py served-index.json --check
 ```
 
-— so it validates production, not this branch. **A failure there can mean a
+The same job also runs `python3 scripts/readme_apps.py served-index.json` to compare
+the branch's README app IDs with production in both directions. Unit tests for
+that comparison use offline fixtures.
+
+The metadata audit validates production, not this branch. **A failure there can mean a
 deploy hasn't propagated, not that your change is wrong.** Read it as a
 monitoring signal that happens to live in CI.
 

@@ -3,7 +3,7 @@ name: Check remote metadata
 # Verifies that every app published to the live remote still carries the
 # AppStream metadata software centres need. This checks the served index, not
 # this repository's historical snapshot, so it runs on a schedule rather than
-# on push.
+# on push. Also checks the README app list against every served app ID.
 
 on:
   schedule:
@@ -23,6 +23,9 @@ jobs:
 
       - name: Fetch the served index
         run: curl -sSfL -o served-index.json https://tunaos.org/flatpak/index/static
+
+      - name: Compare README apps with the served index
+        run: python3 scripts/readme_apps.py served-index.json
 
       - name: Check AppStream metadata against the registry
         run: ./scripts/enrich-index.py served-index.json --check
