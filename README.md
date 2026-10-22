@@ -50,8 +50,9 @@ Never post account credentials or API keys in issues or pull requests.
 | Mandelbrot | `flatpak install tuna-os org.tunaos.mandelbrot` |
 | Tavern | `flatpak install tuna-os org.tunaos.tavern` |
 | Compass | `flatpak install tuna-os org.tunaos.compass` |
-| BlueShell | `flatpak install tuna-os org.tunaos.BlueShell` |
+| BlueShell | `flatpak install tuna-os org.tunaos.blueshell` |
 | Ghostty | `flatpak install tuna-os com.mitchellh.ghostty` |
+| Quickcast | `flatpak install tuna-os org.tunaos.Quickcast` |
 | Installer (bootc-installer) | `flatpak install tuna-os org.bootcinstaller.Installer` |
 | Installer (KDE) | `flatpak install tuna-os org.tunaos.InstallerKde` |
 | Installer (Niri) | `flatpak install tuna-os org.tunaos.InstallerNiri` |
