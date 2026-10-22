@@ -219,13 +219,19 @@ class ScreenshotCountTests(unittest.TestCase):
         self.assertIsNone(enrich_index.screenshot_count("<components><broken"))
 
     def test_site_icon_extension_does_not_make_catalogue_stale(self):
-        original = self.catalogue("<name>Demo</name>")
+        # Pin prepare-flatpak-icons.mjs's stock-icon insertion format; see the
+        # producer link beside SITE_ICON. Preserve the registry's stock icon.
+        original = self.catalogue(
+            '<name>Demo</name>\n    <icon type="stock">org.tunaos.demo</icon>\n'
+        )
         remote_icon = (
-            '    <icon type="remote" width="128" height="128">'
+            '<icon type="remote" width="128" height="128">'
             'https://tunaos.org/flatpak/icons/org.tunaos.demo-x86_64.png'
             '</icon>\n'
         )
-        enriched = original.replace("</component>", remote_icon + "</component>")
+        enriched = original.replace(
+            '<icon type="stock">', remote_icon + '    <icon type="stock">'
+        )
         self.assertEqual(enrich_index.without_site_icon(enriched), original)
 
 

@@ -28,6 +28,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from oci import APPSTREAM_LABELS, Registry, RegistryError, filter_labels  # noqa: E402
 
 APPDATA_LABEL = "org.freedesktop.appstream.appdata"
+# Producer: tuna-os/docs scripts/prepare-flatpak-icons.mjs, run by package.json prebuild.
+# https://github.com/tuna-os/docs/blob/1cdc86a3f03e406a95d6886b207dc09a11ae7ad2/scripts/prepare-flatpak-icons.mjs#L45-L53
+# Keep this exact-format exception narrow so other AppStream drift is still reported.
 SITE_ICON = re.compile(
     r'    <icon type="remote" width="128" height="128">'
     r'https://tunaos\.org/flatpak/icons/[A-Za-z0-9._-]+\.png</icon>\n'
@@ -35,7 +38,7 @@ SITE_ICON = re.compile(
 
 
 def without_site_icon(appdata):
-    """Remove the Bazaar-compatible URL that the docs site adds at build."""
+    """Remove only the docs build's remote icon extension for comparison."""
     return SITE_ICON.sub("", appdata)
 
 
