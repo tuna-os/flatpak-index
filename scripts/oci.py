@@ -65,6 +65,39 @@ def _curl(url, headers=(), attempts=4):
     raise RegistryError(f"GET {url} failed: rc={last.returncode} {stderr or stdout}")
 
 
+_HEAD_DIGEST_HEADER = "docker-content-digest"
+
+
+def _curl_head(url, headers=(), attempts=4):
+    """HEAD the URL; return the response headers as a lower-case dict.
+
+    The registry echoes the digest a tag currently resolves to in the
+    ``Docker-Content-Digest`` header, which is how a freshness check sees a
+    publish that has moved a tag past the digest the index recorded.
+    """
+    cmd = ["curl", "-sSL", "-I", "--fail-with-body"]
+    for header in headers:
+        cmd += ["-H", header]
+    cmd.append(url)
+    last = None
+    for attempt in range(attempts):
+        result = subprocess.run(cmd, capture_output=True)
+        if result.returncode == 0 and result.stdout.strip():
+            headers_out = {}
+            for chunk in result.stdout.split(b"\r\n"):
+                line = chunk.decode("utf-8", "replace").strip()
+                if ":" in line and not line.upper().startswith("HTTP"):
+                    key, _, value = line.partition(":")
+                    headers_out[key.strip().lower()] = value.strip()
+            return headers_out
+        last = result
+        if attempt + 1 < attempts:
+            time.sleep(2 ** attempt)
+    stderr = (last.stderr or b"").decode("utf-8", "replace").strip()
+    stdout = (last.stdout or b"").decode("utf-8", "replace").strip()
+    raise RegistryError(f"HEAD {url} failed: rc={last.returncode} {stderr or stdout}")
+
+
 class Registry:
     """Reads manifests and config blobs from one OCI registry."""
 
@@ -111,3 +144,40 @@ class Registry:
             )
         config = self.blob(repository, manifest["config"]["digest"])
         return config.get("config", {}).get("Labels") or {}
+
+
+    def reference_digest(self, repository, reference, architecture=None):
+        """Return the digest the registry currently assigns to ``reference``.
+
+        ``reference`` is a tag such as ``latest``. The served index records the
+        digest a tag resolved to when it was published; resolving the tag again
+        here shows whether a newer publish has moved it, which is how the
+        freshness check detects an index that lags production.
+
+        The served index stores a per-arch digest, so for a manifest list the
+        digest of the sub-manifest for ``architecture`` is returned; for a
+        single-arch manifest the tag's own digest is returned. Comparing the
+        tag's current digest against the recorded one flags a moved tag.
+        """
+        headers = (self._auth_header(repository),)
+        url = f"https://{self.host}/v2/{repository}/manifests/{reference}"
+        body = json.loads(_curl(url, headers))
+        if "manifests" in body:
+            if architecture is None:
+                raise RegistryError(
+                    f"{repository}@{reference} is a manifest list, not an image manifest"
+                )
+            for sub in body["manifests"]:
+                if sub.get("platform", {}).get("architecture") == architecture:
+                    return sub["digest"]
+            raise RegistryError(
+                f"{repository}@{reference} has no {architecture} sub-manifest"
+            )
+        response_headers = _curl_head(url, headers)
+        digest = response_headers.get(_HEAD_DIGEST_HEADER)
+        if not digest:
+            raise RegistryError(
+                f"{repository}@{reference} response carried no "
+                f"{_HEAD_DIGEST_HEADER} header"
+            )
+        return digest
