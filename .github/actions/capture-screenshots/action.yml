@@ -1,3 +1,11 @@
+# DEPRECATED / relocating: this action is slated for migration out of
+# tuna-os/flatpak-index into the org automation repo (tuna-os/.github), where it
+# will get a pinned, versioned home of its own. See tuna-os/flatpak-index#66
+# (architecture finding) and #169 (migrate consumers + remove local action).
+# Removal from THIS repo is blocked until the shared action is published in
+# tuna-os/.github, so callers keep using this path for now. Do not delete it
+# before that lands: tests.yml (capture-action-apt / capture-action-dnf) and
+# external repos consume it directly.
 name: "Capture app screenshots"
 description: >-
   Photograph a GUI application's own window under a headless X server and write
