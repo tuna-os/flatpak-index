@@ -48,29 +48,28 @@ being published. Do not narrow that tuple.
 declarations of one invariant. `tests/test_label_policy.py` pins them to each
 other — update both together, and let that test tell you if they've drifted.
 
-## Three copies of one script
+## One canonical copy (this file)
 
-`scripts/update-index.py` describes itself as *the canonical copy*, vendored by
-application repositories at `.github/scripts/update-index.py` and run from
-their publish workflow after `flatpak build-bundle --oci`. A third lives in
-`tuna-os/.github` as the `update-flatpak-index` composite action.
+`scripts/update-index.py` is **the canonical publisher**. Two other copies
+exist, and neither is an owner:
 
-They have **drifted structurally** — this copy is 146 lines, the composite
-action's is 118 — while currently agreeing on the label behaviour above.
+- Application repositories vendor it at `.github/scripts/update-index.py`.
+- The `update-flatpak-index` composite action in `tuna-os/.github` is a
+  **byte-identical synced copy** of this file (PR #123). It must match this
+  file, not diverge from it.
 
-There *is* a sync check, and it does not cover this file.
-`flatpak-tooling-drift-check.yml` in `tuna-os/.github` runs weekly and compares
-eight application repos' `.github/scripts/update-index.py` against
-`.github/actions/update-flatpak-index/update-index.py`, which it treats as
-canonical. `tuna-os/flatpak-index` is not in its list. So this file's docstring
-claim to be "the canonical copy" is both unchecked and contradicted by the
-org's own definition — and the two disagree today (blob `b7dc0458` here,
-`6eaa8186` there).
+`tuna-os/.github/flatpak-tooling-drift-check.yml` (weekly) enforces this. It
+reads this file's blob sha as ground truth, fails if the composite action's
+copy falls out of sync, and classifies each publishing app repo as migrated,
+in-sync, drifted, or unwired — a drifted vendored copy is an error. See
+`tuna-os/.github#156`. So the docstring's "the canonical copy" line is now the
+org's definition, not an unchecked claim.
 
-That check has also been failing on every scheduled run since 2026-08-17.
-
-When you change this file, check the other two deliberately; a fix landing in
-only one is the failure mode this arrangement invites.
+When you change this file, the composite action copy stays in sync while
+unchanged, but any app repo that vendors a diverged copy is flagged `drifted`
+and must port the change back here or migrate to the shared
+`publish-flatpak.yml` workflow. A fix landing only in a vendored copy is still
+the failure mode this arrangement invites.
 
 ## Checks
 
