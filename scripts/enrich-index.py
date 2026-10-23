@@ -28,6 +28,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from oci import APPSTREAM_LABELS, Registry, RegistryError, filter_labels  # noqa: E402
 
 APPDATA_LABEL = "org.freedesktop.appstream.appdata"
+# Labels that describe the application, not one built image: identical for every
+# image an app publishes at one architecture. In the current index format they
+# live once under the top-level ApplicationMetadata block (populated by
+# update-index.py, keyed by app-id/flatpak-arch) instead of repeating on each
+# image. enrich only rewrites per-image labels, so it must never write these
+# back onto an image -- that would undo the move. Drop them here before merging,
+# for both the old format (where they still sit on the image) and the new one.
+APP_LEVEL_LABELS = (
+    "org.flatpak.metadata",
+    "org.flatpak.commit-metadata.xa.metadata",
+    "org.flatpak.body",
+)
+
 SITE_ICON = re.compile(
     r'    <icon type="remote" width="128" height="128">'
     r'https://tunaos\.org/flatpak/icons/[A-Za-z0-9._-]+\.png</icon>\n'
@@ -53,7 +66,10 @@ def screenshot_count(appdata):
 
 
 def enrich(index_data, registry, verbose=True):
-    """Merge registry labels into every image entry.
+    """Restore per-image labels the registry still carries but the index is
+    missing. App-level labels (org.flatpak.metadata, org.flatpak.body, ...) are
+    left untouched: they live under ApplicationMetadata in the new format and on
+    the image in the old one, and rewriting them here would undo that move.
 
     Returns (updated, problems, warnings). Problems are things that make an
     entry wrong; warnings are things that make it look bad.
@@ -68,7 +84,16 @@ def enrich(index_data, registry, verbose=True):
             digest = image["Digest"]
             label = f"{repository} ({image.get('Architecture', '?')})"
             try:
-                registry_labels = filter_labels(registry.image_labels(repository, digest))
+                # App-level labels live under ApplicationMetadata in the new format
+                # (and still on the image in the old one). Never re-add them here,
+                # or enrich would undo the move update-index.py already made.
+                registry_labels = {
+                    name: value
+                    for name, value in filter_labels(
+                        registry.image_labels(repository, digest)
+                    ).items()
+                    if name not in APP_LEVEL_LABELS
+                }
             except RegistryError as error:
                 problems.append(f"{label}: could not read labels -- {error}")
                 continue
