@@ -22,7 +22,7 @@ checks the system scope and reports nothing to update.
 
 The `tunaos-org` Cloudflare Worker serves `tunaos.org/flatpak/`, with
 static assets from the [tuna-os/docs](https://github.com/tuna-os/docs) repo.
-For the add, update, pause, and retire workflow, see the [application lifecycle runbook](docs/APP-LIFECYCLE.md).
+For security concerns, see the [security policy](SECURITY.md).
 
 <!-- hive-contribute-plea: donated-compute appeal, keep in sync across repos -->
 ## Contribute compute — no code needed
