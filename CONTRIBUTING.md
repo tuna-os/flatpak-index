@@ -24,7 +24,7 @@ Never post account credentials or API keys in issues or pull requests.
 
 | Path | What lives here |
 |---|---|
-| `scripts/update-index.py` | Standalone, self-contained implementation that adds/replaces one app's entry in an OCI index. The organization's preferred canonical path is the [`update-flatpak-index` composite action](https://github.com/tuna-os/.github/tree/main/.github/actions/update-flatpak-index); application repos should prefer it. If a repo vendors this script at `.github/scripts/update-index.py`, see the README's "How to add a new Flatpak" section before changing its interface. |
+| `scripts/update-index.py` | Standalone, self-contained implementation that adds/replaces one app's entry in an OCI index. This file is the **single canonical copy** — the [`update-flatpak-index` composite action](https://github.com/tuna-os/.github/tree/main/.github/actions/update-flatpak-index) and application repos' vendored copies at `.github/scripts/update-index.py` are synced copies of it, kept in sync by `flatpak-tooling-drift-check.yml`. See the README's "How to add a new Flatpak" section before changing its interface. |
 | `scripts/enrich-index.py` | Re-reads AppStream labels from the registry and repairs/audits an index file in place (missing metadata, missing screenshots). |
 | `scripts/oci.py` | Shared OCI layout/registry helpers used by the other scripts. |
 | `.github/actions/capture-screenshots` | Composite action that captures an app's own window under a headless X server for AppStream screenshots; see `docs/SCREENSHOTS.md`. |
