@@ -24,6 +24,8 @@ run: ./scripts/enrich-index.py served-index.json --check
 deploy hasn't propagated, not that your change is wrong.** Read it as a
 monitoring signal that happens to live in CI.
 
+To read a red run and route a failure, see [docs/check-metadata-failure.md](docs/check-metadata-failure.md).
+
 ## The label rule that has already bitten
 
 `scripts/update-index.py` keeps only labels matching:
