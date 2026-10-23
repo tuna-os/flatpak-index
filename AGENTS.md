@@ -50,27 +50,31 @@ other — update both together, and let that test tell you if they've drifted.
 
 ## Three copies of one script
 
-`scripts/update-index.py` describes itself as *the canonical copy*, vendored by
-application repositories at `.github/scripts/update-index.py` and run from
-their publish workflow after `flatpak build-bundle --oci`. A third lives in
-`tuna-os/.github` as the `update-flatpak-index` composite action.
+`scripts/update-index.py` is the **canonical** single-file script. Application
+repositories either vendor it at `.github/scripts/update-index.py` or consume
+the `update-flatpak-index` composite action from `tuna-os/.github` — that action
+is a byte-identical synced copy of this file, not a second source of truth.
 
-They have **drifted structurally** — this copy is 146 lines, the composite
-action's is 118 — while currently agreeing on the label behaviour above.
+The single source of truth is enforced by
+`flatpak-tooling-drift-check.yml` in `tuna-os/.github`, which runs weekly and:
 
-There *is* a sync check, and it does not cover this file.
-`flatpak-tooling-drift-check.yml` in `tuna-os/.github` runs weekly and compares
-eight application repos' `.github/scripts/update-index.py` against
-`.github/actions/update-flatpak-index/update-index.py`, which it treats as
-canonical. `tuna-os/flatpak-index` is not in its list. So this file's docstring
-claim to be "the canonical copy" is both unchecked and contradicted by the
-org's own definition — and the two disagree today (blob `b7dc0458` here,
-`6eaa8186` there).
+- treats `tuna-os/flatpak-index/scripts/update-index.py` as canonical, and
+  verifies `.github/actions/update-flatpak-index/update-index.py` is byte-identical
+  to it; and
+- classifies each flatpak-publishing repo as `migrated` (no local copy, uses the
+  shared `publish-flatpak.yml`), `in sync` (local copy byte-identical to canonical),
+  `drifted` (local copy differs — error), or `unwired` (no copy and no shared
+  tooling — error).
 
-That check has also been failing on every scheduled run since 2026-08-17.
+An earlier revision drifted structurally (this copy at 146 lines, the action's
+at 118), and this file's "canonical" docstring was unchecked — the drift check
+treated the action copy as canonical instead. Both are now reconciled: the copies
+are byte-identical and the drift check verifies the link, so the docstring claim
+is backed by CI.
 
-When you change this file, check the other two deliberately; a fix landing in
-only one is the failure mode this arrangement invites.
+When you change this file, keep the action copy in `tuna-os/.github` byte-identical
+— the drift check fails on any divergence. A fix landing in only one copy is the
+failure mode this arrangement invites.
 
 ## Checks
 
