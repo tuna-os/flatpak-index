@@ -58,7 +58,7 @@ Never post account credentials or API keys in issues or pull requests.
 | Installer (COSMIC) | `flatpak install tuna-os org.tunaos.InstallerCosmic` |
 | Installer (XFCE) | `flatpak install tuna-os org.tunaos.InstallerXfce` |
 
-> The installer frontends drive the [fisherman](https://github.com/projectbluefin/fisherman)
+> The installer frontends drive the [fisherman](https://github.com/tuna-os/fisherman)
 > bootc backend. The matching TunaOS live ISOs include these frontends
 > (see `build_scripts/installer-frontend.sh` in [tuna-os/tunaOS](https://github.com/tuna-os/tunaOS)).
 
