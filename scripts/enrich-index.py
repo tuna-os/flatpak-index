@@ -11,6 +11,15 @@ This only ever re-reads the digests already named in the index, so the set of
 published images -- and every digest in it -- is unchanged. Only the Labels
 maps grow.
 
+This is the *repair/audit* half of the same contract update-index.py publishes.
+It re-applies the one label rule update-index.py enforces at publish time, so
+an entry that was published incomplete can be read back to complete, and
+``--check`` turns that audit into a pass/fail gate (see check-metadata.yml).
+The rule is one invariant with two independent implementations; tests/
+test_label_policy.py asserts the two copies agree, so a change here that
+diverges from the publisher fails in that test rather than as an asymmetric
+publish/audit mismatch.
+
     ./scripts/enrich-index.py index/static
     ./scripts/enrich-index.py index/static --check     # CI: report, change nothing
 """

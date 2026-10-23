@@ -12,6 +12,18 @@ labels that ``flatpak build-bundle --oci`` writes into the image config.
 Flatpak builds the remote's AppStream catalogue from those labels, so
 dropping them leaves software centres with nothing to show but the
 application ID.
+
+This is the *publish* half of one contract. It decides what *enters* the
+index; scripts/enrich-index.py is the *repair/audit* half -- it re-reads the
+same labels from the registry and fills gaps in an already-published index
+(see scripts/enrich-index.py). The label rule each applies is one invariant
+with two independent implementations (update-index.py must stay a single file,
+so it cannot import oci.py), and tests/test_label_policy.py asserts the two
+copies agree -- a divergence fails there, not as a silent publish/audit mismatch.
+
+AppStream metadata is missing by default: without --require-appstream a build
+with no metainfo writes an incomplete entry and warns. Pass --require-appstream
+to fail instead, so a build must ship metainfo before it is published at all.
 """
 
 import argparse
