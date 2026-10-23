@@ -12,6 +12,9 @@ on:
 
 permissions:
   contents: read
+  # The alert step below opens a GitHub issue on a red run. The built-in
+  # token carries this for the workflow, so no extra secret is needed.
+  issues: write
 
 jobs:
   check:
@@ -25,4 +28,26 @@ jobs:
         run: curl -sSfL -o served-index.json https://tunaos.org/flatpak/index/static
 
       - name: Check AppStream metadata against the registry
-        run: ./scripts/enrich-index.py served-index.json --check
+        id: check
+        # Tee the output so a red run can paste the problems into the alert
+        # issue; the step still fails so the job turns red.
+        run: |
+          ./scripts/enrich-index.py served-index.json --check | tee check-output.txt
+
+      - name: Alert on a red run
+        if: failure()
+        # The daily schedule fires every day, so skip issue creation while an
+        # alert for this run already sits open.
+        run: |
+          set -euo pipefail
+          open=$(gh issue list --state open --label alert/check-metadata --count)
+          if [ "$open" -gt 0 ]; then
+            echo "An alert issue is already open; skipping creation"
+            exit 0
+          fi
+          printf '%s\n' \
+            "The daily check-metadata audit of the served Flatpak remote failed. It reads the live index from https://tunaos.org/flatpak/index/static and audits it against the registry." \
+            "" \
+            "Run logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            > alert-body.md
+          gh issue create --title "check-metadata: remote AppStream audit failed" --label alert/check-metadata --body-file alert-body.md
