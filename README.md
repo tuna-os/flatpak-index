@@ -39,6 +39,14 @@ Never post account credentials or API keys in issues or pull requests.
 
 ## Available apps
 
+CI checks this table against the [coverage manifest](https://github.com/tuna-os/docs/blob/main/static/flatpak/expected-apps.json)
+in `tuna-os/docs`. Update both when adding or retiring an app. To check a local
+manifest and a downloaded live index, run:
+
+```bash
+python3 scripts/check-app-coverage.py ../docs/static/flatpak/expected-apps.json --index served-index.json
+```
+
 | App | Install |
 |-----|---------|
 | Letters | `flatpak install tuna-os org.tunaos.letters` |
@@ -50,7 +58,8 @@ Never post account credentials or API keys in issues or pull requests.
 | Mandelbrot | `flatpak install tuna-os org.tunaos.mandelbrot` |
 | Tavern | `flatpak install tuna-os org.tunaos.tavern` |
 | Compass | `flatpak install tuna-os org.tunaos.compass` |
-| BlueShell | `flatpak install tuna-os org.tunaos.BlueShell` |
+| BlueShell | `flatpak install tuna-os org.tunaos.blueshell` |
+| Quickcast | `flatpak install tuna-os org.tunaos.Quickcast` |
 | Ghostty | `flatpak install tuna-os com.mitchellh.ghostty` |
 | Installer (bootc-installer) | `flatpak install tuna-os org.bootcinstaller.Installer` |
 | Installer (KDE) | `flatpak install tuna-os org.tunaos.InstallerKde` |

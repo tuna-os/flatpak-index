@@ -24,5 +24,11 @@ jobs:
       - name: Fetch the served index
         run: curl -sSfL -o served-index.json https://tunaos.org/flatpak/index/static
 
+      - name: Fetch the canonical coverage manifest
+        run: curl --fail --silent --show-error --location --retry 3 -o expected-apps.json https://raw.githubusercontent.com/tuna-os/docs/main/static/flatpak/expected-apps.json
+
+      - name: Check served and advertised coverage
+        run: python3 scripts/check-app-coverage.py expected-apps.json --index served-index.json
+
       - name: Check AppStream metadata against the registry
         run: ./scripts/enrich-index.py served-index.json --check
