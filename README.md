@@ -316,4 +316,4 @@ The `index/static` file is a JSON array with OCI image references. Each entry ma
 
 > **Note:** The authoritative index is `static/flatpak/index/static` in the [tuna-os/docs](https://github.com/tuna-os/docs) repo, served at <https://tunaos.org/flatpak/>. The copy of `index/static` in this repo is a **historical snapshot**, not what the remote serves. Treat it as reference only; the table (and tunaos.org) reflect the live remote.
 >
-> **This repo's [GitHub Pages site](https://tuna-os.github.io/flatpak-index/) and root `tuna-os.flatpakrepo` file are a non-authoritative snapshot.** Do not use `flatpak remote-add` on that URL or file. Always use the remote URL <https://tunaos.org/flatpak/tuna-os.flatpakrepo> from the [top of this README](#tunaos-flatpak-index).
+> **This repo's [GitHub Pages site](https://tuna-os.github.io/flatpak-index/) and root `tuna-os.flatpakrepo` file are a non-authoritative snapshot.** Do not use `flatpak remote-add` on that URL or file. Always use the remote URL <https://tunaos.org/flatpak/tuna-os.flatpakrepo> from the [top of this README](#available-apps).
