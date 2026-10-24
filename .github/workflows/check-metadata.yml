@@ -24,5 +24,10 @@ jobs:
       - name: Fetch the served index
         run: curl -sSfL -o served-index.json https://tunaos.org/flatpak/index/static
 
+      - name: Check production catalog coverage and advertised IDs
+        run: |
+          curl --fail --silent --show-error --location -o expected-apps.json https://tunaos.org/flatpak/expected-apps.json
+          python3 scripts/catalog.py expected-apps.json --readme README.md --index served-index.json
+
       - name: Check AppStream metadata against the registry
         run: ./scripts/enrich-index.py served-index.json --check
