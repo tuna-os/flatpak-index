@@ -38,6 +38,16 @@ jobs:
           python-version: "3.15"
       - run: python3 -m unittest discover -s tests -v
 
+  catalog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Fetch production declaration
+        run: curl --fail --silent --show-error --location -o expected-apps.json https://tunaos.org/flatpak/expected-apps.json
+      - run: python3 scripts/catalog.py expected-apps.json --readme README.md
+
   # The capture action is consumed by other repos, so a defect in it only ever
   # surfaces as a red build somewhere else. It shipped asking for
   # xorg-x11-utils (retired and split by Fedora years ago) and matching
