@@ -28,8 +28,11 @@ further upkeep.
 
 ## Using the shared action
 
+Pin the action to a commit SHA rather than `main`, and review updates before
+changing the pin. For example:
+
 ```yaml
-- uses: tuna-os/flatpak-index/.github/actions/capture-screenshots@main
+- uses: tuna-os/flatpak-index/.github/actions/capture-screenshots@9b8dada28499f53016f20b689fe46f1f31e0dd79 # main at time of writing
   with:
     command: ./target/release/myapp
     name: 01-main

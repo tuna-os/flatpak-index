@@ -140,7 +140,8 @@ For apps that need **Node.js** (like Mariner), add a `nodejs` module:
 
 ### 3. Add a publish workflow
 
-Create `.github/workflows/publish-flatpak.yml`:
+Create `.github/workflows/publish-flatpak.yml`. The actions below are pinned to
+commit SHAs; review and update the pins when adopting newer releases.
 
 ```yaml
 name: Publish Flatpak
@@ -162,9 +163,9 @@ jobs:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
       options: --privileged
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Build Flatpak
-        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        uses: flatpak/flatpak-github-actions/flatpak-builder@79327416609af08178ad73b352877e51450790b3 # v6
         with:
           manifest-path: org.tunaos.<app>.json
           cache-key: flatpak-builder-${{ github.sha }}
@@ -174,7 +175,7 @@ jobs:
         run: |
           flatpak build-bundle --oci --arch=x86_64 repo <app>.oci org.tunaos.<app>
       - name: Upload OCI artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: <app>-oci
           path: <app>.oci/
@@ -185,8 +186,8 @@ jobs:
     needs: build-oci
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: <app>-oci
           path: <app>.oci
@@ -197,7 +198,7 @@ jobs:
           echo "$GITHUB_TOKEN" | skopeo login ghcr.io -u "${{ github.actor }}" --password-stdin
           skopeo copy oci:<app>.oci docker://ghcr.io/tuna-os/<app>:latest
       - name: Check out central index
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: tuna-os/docs
           token: ${{ secrets.FLATPAK_INDEX_TOKEN }}
