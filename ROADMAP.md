@@ -7,14 +7,14 @@ features and packaging roadmaps remain in their respective repositories.
 ## Current state
 
 The production remote at `https://tunaos.org/flatpak/` is served from
-`tuna-os/docs` by the `tunaos-org` Cloudflare Worker, while this repository
-contains a historical index snapshot and a separate GitHub Pages deployment.
-Application repositories publish OCI images and are currently documented to
-push index updates directly to `docs` with a `FLATPAK_INDEX_TOKEN`.
+`tuna-os/docs` by the `tunaos-org` Cloudflare Worker.
+Application repositories publish OCI images and push index updates directly to
+`docs` with a `FLATPAK_INDEX_TOKEN`.
 
-Until the consolidation decision below is complete, treat the index under
-`tuna-os/docs/static/flatpak/` as production and this repository as a reference
-snapshot. Do not infer production state from this repository's Pages site.
+Per issues #171 and #173, `tuna-os/docs` is the canonical catalog owner, and the
+historical snapshot and GitHub Pages deployment in this repository have been
+retired. Metadata checks in this repository validate the live served catalog at
+`https://tunaos.org/flatpak/index/static`.
 
 ## Near term: decide and make drift visible
 
@@ -45,8 +45,8 @@ Target: the cycle after the ownership decision.
   architecture set, source revision, and intended channel.
 - Validate the candidate index before publication and the served index after
   deployment.
-- Remove or redirect the non-authoritative Pages deployment and delete the
-  historical snapshot once consumers and documentation no longer depend on it.
+- Retired the non-authoritative Pages deployment and deleted the historical
+  snapshot (completed in #173).
 - Provide a contributor runbook for adding, updating, pausing, and retiring an
   application.
 

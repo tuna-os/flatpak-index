@@ -11,8 +11,8 @@ change.
   and source revision.
 - Work in the application repository for source, manifest, metainfo, and
   publisher workflow changes.
-- Treat `tuna-os/docs/static/flatpak/index/static` as production. Do not expect
-  edits to this repository's `index/static` snapshot to change the live remote.
+- Treat `tuna-os/docs/static/flatpak/index/static` as production. This repository
+  no longer retains a local `index/static` snapshot.
 - Keep `FLATPAK_INDEX_TOKEN` scoped to `tuna-os/docs` as documented in the
   publish workflow. Never put token values in commands or documentation.
 

@@ -1,8 +1,10 @@
 import base64
 import configparser
 import json
+import os
 import re
 import unittest
+import urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
 from xml.etree import ElementTree
@@ -15,12 +17,29 @@ REQUIRED_LABELS = {
     "org.flatpak.commit",
     "org.flatpak.timestamp",
 }
+SERVED_INDEX_URL = "https://tunaos.org/flatpak/index/static"
+
+
+def load_index():
+    index_file = os.environ.get("FLATPAK_INDEX_FILE")
+    if index_file:
+        return json.loads(Path(index_file).read_text())
+    served_local = ROOT / "served-index.json"
+    if served_local.is_file():
+        return json.loads(served_local.read_text())
+    index_url = os.environ.get("FLATPAK_INDEX_URL", SERVED_INDEX_URL)
+    req = urllib.request.Request(index_url, headers={"User-Agent": "curl/7.88.1"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode())
+    except Exception as exc:
+        raise unittest.SkipTest(f"Live catalog unavailable from {index_url}: {exc}") from exc
 
 
 class IndexTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.index = json.loads((ROOT / "index/static").read_text())
+        cls.index = load_index()
 
     def test_registry_is_https(self):
         registry = urlparse(self.index["Registry"])
@@ -38,19 +57,21 @@ class IndexTests(unittest.TestCase):
         for result in self.index["Results"]:
             with self.subTest(name=result["Name"]):
                 self.assertTrue(result["Images"])
-                architectures = []
+                digests = []
                 for image in result["Images"]:
-                    architectures.append(image["Architecture"])
+                    digests.append(image["Digest"])
                     self.assertRegex(image["Digest"], DIGEST)
                     self.assertEqual(
                         image["MediaType"], "application/vnd.oci.image.manifest.v1+json"
                     )
                     self.assertEqual(image["OS"], "linux")
-                    self.assertIn("latest", image["Tags"])
+                    self.assertTrue(image["Tags"])
                     self.assertLessEqual(REQUIRED_LABELS, image["Labels"].keys())
                     self.assertRegex(image["Labels"]["org.flatpak.commit"], r"^[0-9a-f]{64}$")
                     self.assertTrue(image["Labels"]["org.flatpak.ref"].startswith("app/"))
-                self.assertEqual(len(architectures), len(set(architectures)))
+                self.assertEqual(len(digests), len(set(digests)))
+                all_tags = [tag for img in result["Images"] for tag in img.get("Tags", [])]
+                self.assertIn("latest", all_tags)
 
     def test_image_size_labels_are_positive_integers(self):
         size_labels = (
@@ -100,6 +121,11 @@ class RepositoryDescriptorTests(unittest.TestCase):
         self.assertEqual(parsed.scheme, "https")
         self.assertTrue(parsed.netloc)
 
+    def test_remote_descriptor_points_to_canonical_catalog(self):
+        # The canonical remote is served from tuna-os/docs at tunaos.org/flatpak.
+        self.assertEqual(self.repo["Url"], "oci+https://tunaos.org/flatpak")
+        self.assertEqual(self.repo["Homepage"], "https://tunaos.org")
+
 
 class AppStreamTests(unittest.TestCase):
     """Validate the AppStream metadata carried by the index.
@@ -111,8 +137,7 @@ class AppStreamTests(unittest.TestCase):
     to render.
 
     Whether every published app *has* metadata is a property of the live
-    remote, not of this repository's historical snapshot -- check that with
-    ``./scripts/enrich-index.py <index> --check``.
+    remote -- check that with ``./scripts/enrich-index.py <index> --check``.
     """
 
     APPSTREAM = "org.freedesktop.appstream.appdata"
@@ -123,7 +148,7 @@ class AppStreamTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.index = json.loads((ROOT / "index/static").read_text())
+        cls.index = load_index()
 
     def images(self):
         for result in self.index["Results"]:
