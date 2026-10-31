@@ -1,0 +1,8 @@
+[
+  {
+    "repository": "tuna-os/tavern",
+    "tag": "latest",
+    "architecture": "amd64",
+    "ref": "app/org.tunaos.tavern/x86_64/master"
+  }
+]
