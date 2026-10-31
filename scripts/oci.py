@@ -4,7 +4,9 @@ Only supports what the index needs: anonymous (or token-authenticated) pulls of
 a manifest and its config blob, so the image's labels can be read back.
 """
 
+import hashlib
 import json
+import re
 import subprocess
 import time
 import urllib.parse
@@ -36,6 +38,19 @@ APPSTREAM_LABELS = (
 
 class RegistryError(RuntimeError):
     pass
+
+
+def _validate_digest(digest):
+    if not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+        raise RegistryError(f"Unsupported or invalid sha256 digest: {digest!r}")
+
+
+def _check_digest(body, digest):
+    """Check raw bytes against a canonical sha256 OCI digest before parsing."""
+    _validate_digest(digest)
+    actual = "sha256:" + hashlib.sha256(body).hexdigest()
+    if actual != digest:
+        raise RegistryError(f"Digest mismatch: expected {digest}, got {actual}")
 
 
 def keep_label(name):
@@ -93,14 +108,25 @@ class Registry:
         return f"Authorization: Bearer {self._tokens[repository]}"
 
     def manifest(self, repository, reference):
+        if ":" in reference:
+            _validate_digest(reference)
         headers = (self._auth_header(repository), f"Accept: {MANIFEST_ACCEPT}")
         url = f"https://{self.host}/v2/{repository}/manifests/{reference}"
-        return json.loads(_curl(url, headers))
+        body = _curl(url, headers)
+        # Tags are mutable and cannot be validated against their own name.
+        # A digest reference, however, must match the exact response bytes.
+        if ":" in reference:
+            _check_digest(body, reference)
+        return json.loads(body)
 
     def blob(self, repository, digest):
+        # Reject unsupported or malformed descriptors before constructing a URL.
+        _validate_digest(digest)
         headers = (self._auth_header(repository),)
         url = f"https://{self.host}/v2/{repository}/blobs/{digest}"
-        return json.loads(_curl(url, headers))
+        body = _curl(url, headers)
+        _check_digest(body, digest)
+        return json.loads(body)
 
     def image_labels(self, repository, reference):
         """Return the config labels of the image at ``reference``."""
