@@ -86,6 +86,47 @@ ruff check .                               # config in ruff.toml
 `scripts/oci.py` holds the registry plumbing, `enrich-index.py` the validation
 used by the live check above.
 
+## Triaging a check-metadata failure
+
+`check-metadata.yml` curls the **live served** index at
+`https://tunaos.org/flatpak/index/static` every 24 hours and runs
+`enrich-index.py --check` against it. Because this repo serves nothing, a
+failure means the *production* index is wrong, not this branch. On failure the
+workflow auto-files a GitHub issue (label `check-metadata-failure`) so the
+problem is visible in the backlog instead of living only in the Actions UI;
+repeated runs comment on that one issue rather than opening a duplicate.
+
+**What a failure usually means (in order of frequency):**
+
+1. **Stale / not-yet-propagated deploy.** A correct change here or in
+   `tuna-os/docs` hasn't reached the Cloudflare Worker yet. Wait for the deploy
+   to propagate and re-run the workflow; the next scheduled run clears itself.
+2. **Dropped AppStream metadata.** An app published without the
+   `org.freedesktop.appstream.*` labels (screenshots, licence, categories) the
+   software centres need. Confirm the app republishes with metadata; the check
+   repairs and audits the served index on the next successful run.
+3. **Registry unreachable.** `enrich-index.py` timed out or got a 503. Re-run
+   once the registry is healthy.
+
+**Triage steps:**
+
+1. Open the filed issue and read the linked workflow run for the exact error.
+2. Run the check locally against the live index to reproduce:
+
+   ```bash
+   curl -sSfL -o served-index.json https://tunaos.org/flatpak/index/static
+   ./scripts/enrich-index.py served-index.json --check
+   ```
+
+3. If it passes locally, the served index was stale — wait for propagation and
+   close the issue. If it fails locally, the index is genuinely broken; fix the
+   source (a `tuna-os/docs` deploy or the app's publish workflow) and close the
+   issue once the next run is green.
+
+**Not in scope from here:** Slack/Discord paging, dashboard pass-rate metrics,
+signed-commit enforcement in `tuna-os/docs`, and real-time validation — those
+need maintainer decisions or live in another repo. See issue #141.
+
 ## Skill: add-flatpak-to-remote
 
 Adding a new app to the TunaOS remote (the long form is in the README):

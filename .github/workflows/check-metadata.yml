@@ -4,6 +4,12 @@ name: Check remote metadata
 # AppStream metadata software centres need. This checks the served index, not
 # this repository's historical snapshot, so it runs on a schedule rather than
 # on push.
+#
+# A failure here means the *served* index is wrong — a corrupt or not-yet-
+# propagated deploy in tuna-os/docs, AppStream labels dropped from a published
+# app, or an unreachable registry — not that this branch is bad. It auto-files
+# a GitHub issue on failure so a broken index is never silent; the triage
+# runbook is in AGENTS.md.
 
 on:
   schedule:
@@ -12,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   check:
@@ -26,3 +33,53 @@ jobs:
 
       - name: Check AppStream metadata against the registry
         run: ./scripts/enrich-index.py served-index.json --check
+
+      - name: File an issue when the served index fails validation
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+            const runUrl = `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+
+            // Stable title so repeated daily failures comment on one issue
+            // instead of opening a new one every run.
+            const title = 'check-metadata: served index failed AppStream metadata validation';
+            const label = 'check-metadata-failure';
+
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', labels: label, per_page: 100,
+            });
+            const existing = open.find(i => i.title === title);
+
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: existing.number,
+                body: [
+                  'Re-failed on the latest scheduled run. See [this run](' + runUrl + ').',
+                  '',
+                  'If the index is now healthy, close this issue to reset the alert.',
+                ].join('\n'),
+              });
+            } else {
+              await github.rest.issues.create({
+                owner, repo, title,
+                labels: [label],
+                body: [
+                  '## check-metadata failed',
+                  '',
+                  'The served Flatpak index at `https://tunaos.org/flatpak/index/static` failed its AppStream metadata check on the latest scheduled run.',
+                  '',
+                  'This repo serves nothing — the remote is served from [`tuna-os/docs`](https://github.com/tuna-os/docs). A failure usually means one of:',
+                  '',
+                  '- a corrupted or not-yet-propagated deploy in `tuna-os/docs`;',
+                  '- AppStream labels (screenshots, licence, categories) dropped from a published app;',
+                  '- the registry being unreachable (503 / timeout).',
+                  '',
+                  'Triage runbook: [AGENTS.md](https://github.com/tuna-os/flatpak-index/blob/main/AGENTS.md#triaging-a-check-metadata-failure).',
+                  '',
+                  '---',
+                  `Run: ${runUrl}`,
+                ].join('\n'),
+              });
+            }
