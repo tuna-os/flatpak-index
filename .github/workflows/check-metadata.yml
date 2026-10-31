@@ -25,4 +25,51 @@ jobs:
         run: curl -sSfL -o served-index.json https://tunaos.org/flatpak/index/static
 
       - name: Check AppStream metadata against the registry
-        run: ./scripts/enrich-index.py served-index.json --check
+        # Capture output so a failure can be filed as an issue below. `tee`
+        # alone would mask the exit status; pipefail keeps the step red when
+        # the check reports missing labels or problems.
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./scripts/enrich-index.py served-index.json --check 2>&1 | tee enrich-check.log
+
+      - name: Alert on failure
+        if: failure()
+        # Least privilege: this step only needs to open an issue. Everything
+        # else in the job keeps the contents: read granted at the job level.
+        permissions:
+          issues: write
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          TITLE_PREFIX="check-metadata failing"
+          # Dedupe: one ongoing failure must not pile up a new issue on every
+          # rerun or every daily run. If an alert for this check is already
+          # open, leave it and stop rather than creating another.
+          OPEN=$(gh issue list --state open --search "${TITLE_PREFIX} in:title" --json number --jq '.[0].number' || true)
+          if [ -n "${OPEN}" ]; then
+            echo "An alert issue already exists (#${OPEN}); not creating a duplicate."
+            exit 0
+          fi
+
+          DATE=$(date -u +%Y-%m-%d)
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          {
+            echo "The **check-metadata** workflow (job \`check\`) failed."
+            echo
+            echo "This job validates the *live served* Flatpak remote's AppStream metadata against the registry. A red run means apps may be rendering with no name/icon/screenshots in software centres (Bazaar, GNOME Software, Discover)."
+            echo
+            echo "> This check reads the served index at https://tunaos.org/flatpak/, not this branch. A failure can mean a deploy has not propagated rather than a bad change — confirm the latest \`main\` is deployed before acting."
+            echo
+            echo "- Workflow run: ${RUN_URL}"
+            echo
+            echo "### Captured check output"
+            echo
+            echo '```'
+            cat enrich-check.log
+            echo '```'
+          } > alert-body.md
+
+          gh issue create --title "${TITLE_PREFIX} ${DATE}" --label "agent/operations" --body-file alert-body.md
