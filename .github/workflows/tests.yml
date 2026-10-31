@@ -38,6 +38,44 @@ jobs:
           python-version: "3.15"
       - run: python3 -m unittest discover -s tests -v
 
+  publisher-action:
+    name: publisher action conformance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Create OCI fixture
+        run: |
+          PYTHONPATH=tests python3 - <<'PYTEST'
+          from pathlib import Path
+          from test_update_index import APPSTREAM_LABELS, FLATPAK_LABELS, write_oci_layout
+          write_oci_layout(Path('fixture.oci'), {**FLATPAK_LABELS, **APPSTREAM_LABELS})
+          PYTEST
+      - uses: ./.github/actions/update-flatpak-index
+        with:
+          oci-dir: fixture.oci
+          index-file: candidate/index.json
+          repo-name: tuna-os/example
+          require-appstream: 'true'
+          tags: latest stable
+      - name: Verify published labels and tags
+        run: |
+          PYTHONPATH=tests python3 - <<'PYTEST'
+          import json
+          from pathlib import Path
+          from test_update_index import APPSTREAM_LABELS, FLATPAK_LABELS
+          index = json.loads(Path('candidate/index.json').read_text())
+          assert index['Registry'] == 'https://ghcr.io'
+          assert index['Results'][0]['Name'] == 'tuna-os/example'
+          image = index['Results'][0]['Images'][0]
+          assert image['Labels'] == {**FLATPAK_LABELS, **APPSTREAM_LABELS}
+          assert image['Tags'] == ['latest', 'stable']
+          PYTEST
+
   # The capture action is consumed by other repos, so a defect in it only ever
   # surfaces as a red build somewhere else. It shipped asking for
   # xorg-x11-utils (retired and split by Fedora years ago) and matching

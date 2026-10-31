@@ -44,33 +44,22 @@ being published. Do not narrow that tuple.
 `scripts/oci.py` declares the same rule independently as
 `FLATPAK_LABEL_PREFIX`/`APPSTREAM_LABEL_PREFIX` and `keep_label()`, used by
 `enrich-index.py` to audit the *live* remote against the registry.
-`update-index.py` can't import `oci.py` (see below), so this is two
+`update-index.py` stays self-contained, so this is two
 declarations of one invariant. `tests/test_label_policy.py` pins them to each
 other — update both together, and let that test tell you if they've drifted.
 
-## Three copies of one script
+## One versioned publisher
 
-`scripts/update-index.py` describes itself as *the canonical copy*, vendored by
-application repositories at `.github/scripts/update-index.py` and run from
-their publish workflow after `flatpak build-bundle --oci`. A third lives in
-`tuna-os/.github` as the `update-flatpak-index` composite action.
+`scripts/update-index.py` is the canonical implementation. The
+[composite action](.github/actions/update-flatpak-index) invokes this file from
+its own release checkout, so consumers need no vendored copy. Pin consumers to
+a full commit SHA from a `publisher-vX.Y.Z` release; see
+[the contract and release guide](docs/PUBLISHER.md).
 
-They have **drifted structurally** — this copy is 146 lines, the composite
-action's is 118 — while currently agreeing on the label behaviour above.
-
-There *is* a sync check, and it does not cover this file.
-`flatpak-tooling-drift-check.yml` in `tuna-os/.github` runs weekly and compares
-eight application repos' `.github/scripts/update-index.py` against
-`.github/actions/update-flatpak-index/update-index.py`, which it treats as
-canonical. `tuna-os/flatpak-index` is not in its list. So this file's docstring
-claim to be "the canonical copy" is both unchecked and contradicted by the
-org's own definition — and the two disagree today (blob `b7dc0458` here,
-`6eaa8186` there).
-
-That check has also been failing on every scheduled run since 2026-08-17.
-
-When you change this file, check the other two deliberately; a fix landing in
-only one is the failure mode this arrangement invites.
+Legacy copies remain in application repos and `tuna-os/.github`. The org's old
+weekly drift check compares those copies against its own action, not this
+repository. It does not establish conformance to this publisher. Migrate callers
+to this action rather than updating or creating detached copies.
 
 ## Checks
 
@@ -94,7 +83,7 @@ Adding a new app to the TunaOS remote (the long form is in the README):
 2. Add `org.tunaos.<app>.json` at that repo's root. GNOME 50 apps use
    `org.gnome.Platform` / `org.gnome.Sdk` runtime-version `50`.
 3. Have that repo's publish workflow run `flatpak build-bundle --oci` and then
-   the vendored `update-index.py`, so the new entry carries both the
+   this repository's SHA-pinned `update-flatpak-index` action, so the new entry carries both the
    `org.flatpak.*` and `org.freedesktop.appstream.*` labels.
 4. Add the app to the README table here.
 5. After publishing, confirm the served index really carries it —
