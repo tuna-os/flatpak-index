@@ -1,0 +1,42 @@
+name: Release index publisher
+
+on:
+  push:
+    tags: ['publisher-v*']
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - run: python3 -m pip install ruff
+      - run: ruff check .
+      - run: python3 -m unittest discover -s tests -v
+  release:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Publish immutable release reference
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^publisher-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          commit="$(git rev-parse HEAD)"
+          gh release create "$RELEASE_TAG" --verify-tag \
+            --title "Index publisher ${RELEASE_TAG#publisher-}" \
+            --notes "Pin consumers to tuna-os/flatpak-index/.github/actions/update-flatpak-index@$commit. See docs/PUBLISHER.md for the contract and migration steps."

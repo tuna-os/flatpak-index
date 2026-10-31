@@ -121,15 +121,16 @@ check that the build system installs it to `/app/share/metainfo/`.
 
 ## Publishing
 
-App repositories vendor [`scripts/update-index.py`](../scripts/update-index.py)
-at `.github/scripts/update-index.py`. Pass `--require-appstream` so the publish
-job fails when an app has no metadata:
+App repositories call the [versioned publisher](PUBLISHER.md) pinned to a full
+release commit SHA. Replace `PUBLISHER_SHA` below with that SHA, and set
+`require-appstream: 'true'` so the publish job fails when an app has no metadata:
 
-```bash
-python3 .github/scripts/update-index.py \
-  --oci-dir <app>.oci \
-  --index-file index-repo/static/flatpak/index/static \
-  --repo-name tuna-os/<app> \
-  --require-appstream \
-  --tags latest
+```yaml
+- uses: tuna-os/flatpak-index/.github/actions/update-flatpak-index@PUBLISHER_SHA
+  with:
+    oci-dir: <app>.oci
+    index-file: index-repo/static/flatpak/index/static
+    repo-name: tuna-os/<app>
+    require-appstream: 'true'
+    tags: latest
 ```

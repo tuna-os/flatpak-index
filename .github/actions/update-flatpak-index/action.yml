@@ -1,0 +1,36 @@
+name: Update Flatpak index
+description: Add or replace one application's OCI index entry using the versioned publisher.
+author: tuna-os
+inputs:
+  oci-dir:
+    description: Local OCI layout directory (relative to the caller's working directory).
+    required: true
+  index-file:
+    description: Index file to update in the caller's checkout.
+    default: index/static
+  repo-name:
+    description: GHCR repository, e.g. tuna-os/tavern.
+    required: true
+  registry:
+    description: Registry hostname used when creating a new index.
+    default: ghcr.io
+  tags:
+    description: Space-separated image tags.
+    default: latest
+  require-appstream:
+    description: Fail if AppStream metadata is missing (true or false).
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - name: Update index
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        OCI_DIR: ${{ inputs.oci-dir }}
+        INDEX_FILE: ${{ inputs.index-file }}
+        REPO_NAME: ${{ inputs.repo-name }}
+        REGISTRY: ${{ inputs.registry }}
+        TAGS: ${{ inputs.tags }}
+        REQUIRE_APPSTREAM: ${{ inputs.require-appstream }}
+      run: bash "$ACTION_PATH/run.sh"

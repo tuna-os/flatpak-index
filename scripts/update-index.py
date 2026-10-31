@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Add or replace one application's entry in a Flatpak OCI index.
 
-This is the canonical single-file Python script. Application repositories vendor it at
-``.github/scripts/update-index.py`` (or invoke the ``update-flatpak-index`` composite
-action from ``tuna-os/.github``) and run it from their publish workflow after
-``flatpak build-bundle --oci``. It is deliberately self-contained: one file, standard
-library only.
+This is the canonical single-file Python script, exposed through this repository's
+versioned ``update-flatpak-index`` composite action. Application workflows call the
+action pinned by commit SHA after ``flatpak build-bundle --oci``; see
+``docs/PUBLISHER.md``. It is deliberately self-contained: one file, standard library
+only.
 
 Unlike earlier revisions, this keeps the ``org.freedesktop.appstream.*``
 labels that ``flatpak build-bundle --oci`` writes into the image config.

@@ -203,13 +203,16 @@ jobs:
           token: ${{ secrets.FLATPAK_INDEX_TOKEN }}
           path: index-repo
       - name: Update central index (tuna-os/docs)
+        # Replace PUBLISHER_SHA with the full commit SHA from a publisher release.
+        uses: tuna-os/flatpak-index/.github/actions/update-flatpak-index@PUBLISHER_SHA
+        with:
+          oci-dir: <app>.oci
+          index-file: index-repo/static/flatpak/index/static
+          repo-name: tuna-os/<app>
+          require-appstream: 'true'
+          tags: latest
+      - name: Commit central index
         run: |
-          python3 .github/scripts/update-index.py \
-            --oci-dir <app>.oci \
-            --index-file index-repo/static/flatpak/index/static \
-            --repo-name tuna-os/<app> \
-            --require-appstream \
-            --tags latest
           cd index-repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -222,14 +225,13 @@ jobs:
           fi
 ```
 
-Also vendor [`scripts/update-index.py`](scripts/update-index.py) from this repo
-to `.github/scripts/update-index.py`, or use the `update-flatpak-index` action
-from `tuna-os/.github` (`tuna-os/.github/actions/update-flatpak-index`). **Prefer
-the composite action.** The weekly drift check in `tuna-os/.github` treats the
-action as canonical, not this file. In the past, they drifted apart.
-See [AGENTS.md](AGENTS.md#three-copies-of-one-script) for the history, and for
-why that check does not look at this file. Do not copy an older version
-from another app repository — see [App metadata](#app-metadata) for why.
+Use the **versioned publisher in this repository**, pinned to a full 40-character
+commit SHA from a `publisher-vX.Y.Z` release. `PUBLISHER_SHA` above is a
+placeholder: replace it before running the workflow. See the
+[publisher contract and release guide](docs/PUBLISHER.md) for resolving a release
+to its SHA and migrating existing consumers. Do not copy `update-index.py` into
+application repositories. Existing vendored copies and the older
+`tuna-os/.github` action are legacy entry points; migrate them to this action.
 
 ### 4. Set repo secrets
 

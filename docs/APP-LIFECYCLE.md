@@ -21,18 +21,11 @@ change.
 1. Add the app's Flatpak manifest, metainfo, and icon in its application
    repository. Use the metadata and screenshot guides in this repository.
 2. Configure the application publisher to build an OCI layout, push the image
-   to GHCR, and update the production index. Prefer the shared
-   `tuna-os/.github/actions/update-flatpak-index` action. If using the vendored
-   script, pass:
-
-   ```sh
-   python3 .github/scripts/update-index.py \
-     --oci-dir <app>.oci \
-     --index-file index-repo/static/flatpak/index/static \
-     --repo-name tuna-os/<app> \
-     --require-appstream \
-     --tags latest
-   ```
+   to GHCR, and update the production index with this repository's
+   [versioned publisher action](PUBLISHER.md). Pin a released full commit SHA
+   and set `require-appstream: 'true'`. See the
+   [complete workflow](../README.md#3-add-a-publish-workflow) for the OCI upload,
+   index checkout, action inputs and index commit steps.
 
 3. Review the application change and publisher output together. The index
    entry must carry both Flatpak labels and AppStream labels.
