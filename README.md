@@ -217,9 +217,20 @@ jobs:
           if git diff --cached --quiet; then
             echo "No index changes"
           else
-            git commit -m "chore(flatpak): update <App> OCI index"
+            git commit -m "chore(flatpak): update <App> OCI index" \
+              -m "Published from ${{ github.repository }} (run ${{ github.run_id }})"
             git push origin main
           fi
+      - name: Audit log the publication
+        run: |
+          echo "::group::flatpak publish audit"
+          echo "triggering-repo: ${{ github.repository }}"
+          echo "commit-sha: ${{ github.sha }}"
+          echo "workflow-run: ${{ github.run_id }} (${{ github.run_attempt }})"
+          echo "workflow: ${{ github.workflow }}"
+          echo "trigger: ${{ github.event_name }}"
+          echo "::endgroup::"
+          echo "flatpak publish — repo=${{ github.repository }} sha=${{ github.sha }} run=${{ github.run_id }}" >> "$GITHUB_STEP_SUMMARY"
 ```
 
 Also vendor [`scripts/update-index.py`](scripts/update-index.py) from this repo
@@ -233,16 +244,65 @@ from another app repository — see [App metadata](#app-metadata) for why.
 
 ### 4. Set repo secrets
 
-- **`FLATPAK_INDEX_TOKEN`**: A fine-grained GitHub PAT with **Contents: read and
-  write** access only to `tuna-os/docs`. Do not reuse a general-purpose CLI or
-  account token.
+- **`FLATPAK_INDEX_TOKEN`**: a token with **Contents: read and write** access
+  only to `tuna-os/docs`. Prefer a **GitHub App installation token** or a
+  **deploy-account token** over a personal PAT (see [Token model](#token-model)
+  below). Do not reuse a general-purpose CLI or account token.
 
 ```bash
 gh secret set FLATPAK_INDEX_TOKEN --repo tuna-os/<app>
 ```
 
-Enter the fine-grained token at the prompt. Do not place token values in command
-arguments, repository URLs, or documentation.
+- **`FLATPAK_INDEX_TOKEN_READ`** (optional): a second token scoped to
+  **Contents: read only** on `tuna-os/docs`, used by the `check-metadata`
+  workflow and integration testing so those reads never need write access.
+
+Enter tokens at the prompt. Do not place token values in command arguments,
+repository URLs, or documentation.
+
+#### Token model
+
+The token above gives every publishing repo **write** access to `tuna-os/docs`.
+That credential — or independent fine-grained tokens carrying the same
+capability — is shared across all publishing repos, and GitHub does not record
+which repo or workflow made each docs commit: only the `github-actions[bot]`
+identity and the token owner are visible. Two things close that gap:
+
+1. **Prefer a GitHub App or deploy account.** A GitHub App scoped to
+   `tuna-os/docs` write access issues short-lived installation tokens instead of
+   a long-lived PAT, and each app repo installs the App under its own repo
+   identity, so commits trace back to the triggering repo. Rotate by
+   reinstalling the App or revoking its installation tokens.
+2. **Split read and write.** Give audit and testing workflows a read-only token
+   so nothing outside an actual publish ever holds write access.
+
+See [#139](https://github.com/tuna-os/flatpak-index/issues/139) for the full
+finding this addresses.
+
+#### Rotating the token
+
+Rotate `FLATPAK_INDEX_TOKEN` on a schedule and on trigger — the same credential
+(or same-capability tokens) lives in every publishing repo, so a single
+compromise reaches the whole index.
+
+- **Schedule:** at least once per year, and whenever staff with write access to
+  any publishing repo leaves a project.
+- **Trigger:** immediately if the token is suspected compromised — leaked in
+  logs, shown in a screenshot, or exposed by a repo breach — or if any single
+  publishing repo is compromised.
+
+Runbook:
+
+1. Issue the replacement (a GitHub App installation, or a fine-grained PAT) with
+   the same `tuna-os/docs` Contents read+write scope.
+2. Set it in every publishing repo:
+   `gh secret set FLATPAK_INDEX_TOKEN --repo tuna-os/<app>` for each repo.
+3. Revoke the old token where it was issued.
+4. Confirm one publishing repo's publish still updates the index, then confirm
+   the served index at <https://tunaos.org/flatpak/> reflects it.
+
+Record the rotation date and the next due date where the team tracks
+credentials, so the schedule stays visible instead of implicit.
 
 ### 5. Push to trigger the build
 
