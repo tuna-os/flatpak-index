@@ -14,9 +14,10 @@ So CI generates them from the real app and references them from
   │  builds the app, then for each screen:
   ▼
 tuna-os/flatpak-index/.github/actions/capture-screenshots
-  │  Xvfb + the app's own window + ImageMagick
+  │  Xvfb + target readiness + ImageMagick
   ▼
 docs/screenshots/NN-name.png          committed back to main
+docs/screenshots/NN-name.receipt.json provenance and evidence
   │  referenced by
   ▼
 data/<app-id>.metainfo.xml            <screenshot><image>raw.githubusercontent…/main/…
@@ -30,22 +31,43 @@ further upkeep.
 
 ```yaml
 - uses: tuna-os/flatpak-index/.github/actions/capture-screenshots@main
+  id: capture
   with:
     command: ./target/release/myapp
     name: 01-main
     out-dir: docs/screenshots      # default
     geometry: 1000x700             # default, Flathub's maximum
     settle: "6"                    # seconds to let the window paint
+    app-id: org.tunaos.myapp       # optional explicit application ID
+    wm-class: MyApp                # optional explicit WM_CLASS
+    readiness-predicate: ""        # optional command asserting target readiness
+    deadline: "30"                 # optional monotonic deadline in seconds
+    capture-mode: window           # "window" (default) or "display"
+    required: "true"               # "true" (default) or "false" (advisory)
 ```
 
 It drives a real X server and photographs the application's own window. It
 is toolkit-agnostic: GTK, Qt, Electron and plain Xt apps all work, without an
 in-process harness written per toolkit.
 
-**It fails the job.** It never publishes a bad image. It covers each
-case: the app exits before it maps a window, maps no window at all, or
-paints a blank one. In every failure it writes nothing, because a blank PNG
-left on disk looks like a real screenshot.
+### Action outputs
+
+The action provides step outputs for pipeline verification:
+
+- `image`: Path to the captured PNG file.
+- `receipt`: Path to the versioned JSON receipt file.
+- `outcome`: Execution outcome (`passed`, `failed`, `blocked`, `not_run`, `unsupported`, `flaky`).
+- `window-id`: Observed X11 window ID.
+- `frame-hash`: SHA-256 digest of the captured frame.
+- `target-pid`: Observed target process ID.
+
+### Correctness contract
+
+- **Target readiness and window identity**: Matches the window by host PID or descendants, explicit `app-id`, or explicit `wm-class`. Flatpak and sandboxed PID namespaces use explicit or inferred application identity. It rejects unrelated windows and does not capture empty or wrong-window surfaces.
+- **Process liveness and late crash detection**: Detects exit before window mapping, enforces monotonic deadlines, and verifies app liveness and window integrity after paint settles.
+- **Rejection of stale output and atomic publishing**: Pre-existing PNG files at the target path are deleted before capture. Fresh output is published atomically on verified success. Failed captures do not write or retain a success-shaped PNG or receipt.
+- **Owned process cleanup**: Isolates temporary state in private directories and display numbers (:97 to :128). Terminates only owned processes and descendants. Unrelated processes stay untouched. Teardown failures are recorded in the receipt and verdict.
+- **Versioned evidence receipt**: Writes a versioned JSON receipt (`schema_version: 1`) that records source and action revisions, run and attempt numbers, requested and observed identities, executable binary digest, environment details, frame hash, timing, diagnostics, and outcome.
 
 An app that renders its own screens more precisely should keep that setup.
 `tuna-installer-kde` renders each wizard step from the real QML module with

@@ -65,12 +65,17 @@ jobs:
           command: xclock -analog
           name: self-test
           out-dir: /tmp/shots
-      - name: The capture must be a real, non-blank image
+      - name: The capture must be a real, non-blank image and emit verified receipt
         run: |
           # capture-app.sh deletes a flat image rather than leaving it on
           # disk, so a file existing here means a window genuinely painted.
           test -s /tmp/shots/self-test.png
           identify -format '%m %wx%h %k colours\n' /tmp/shots/self-test.png | grep -q '^PNG'
+          test -s /tmp/shots/self-test.receipt.json
+          python3 -c "import json; r=json.load(open('/tmp/shots/self-test.receipt.json')); assert r['outcome'] == 'passed'; assert r['cleanup']['status'] == 'success'; assert r['observed']['frame_hash']"
+      - name: Run positive controls and negative fixtures contract tests
+        run: |
+          python3 -m unittest tests/test_capture_contract.py -v
 
   capture-action-dnf:
     name: capture action (dnf)
@@ -89,7 +94,12 @@ jobs:
           command: xclock -analog
           name: self-test
           out-dir: /tmp/shots
-      - name: The capture must be a real, non-blank image
+      - name: The capture must be a real, non-blank image and emit verified receipt
         run: |
           test -s /tmp/shots/self-test.png
           identify -format '%m %wx%h %k colours\n' /tmp/shots/self-test.png | grep -q '^PNG'
+          test -s /tmp/shots/self-test.receipt.json
+          python3 -c "import json; r=json.load(open('/tmp/shots/self-test.receipt.json')); assert r['outcome'] == 'passed'; assert r['cleanup']['status'] == 'success'; assert r['observed']['frame_hash']"
+      - name: Run positive controls and negative fixtures contract tests
+        run: |
+          python3 -m unittest tests/test_capture_contract.py -v

@@ -29,6 +29,50 @@ inputs:
     description: Seconds to let the window paint and settle before capturing
     required: false
     default: "6"
+  app-id:
+    description: Target application ID (e.g. org.tunaos.tavern)
+    required: false
+    default: ""
+  wm-class:
+    description: Explicit WM_CLASS to match
+    required: false
+    default: ""
+  readiness-predicate:
+    description: Command or script expression to assert target readiness
+    required: false
+    default: ""
+  deadline:
+    description: Monotonic deadline in seconds for readiness and capture
+    required: false
+    default: ""
+  capture-mode:
+    description: Capture target window surface ("window") or whole display ("display")
+    required: false
+    default: "window"
+  required:
+    description: Whether this capture is required (true) or advisory (false)
+    required: false
+    default: "true"
+
+outputs:
+  image:
+    description: Path to the captured PNG file
+    value: ${{ steps.capture.outputs.image }}
+  receipt:
+    description: Path to the versioned JSON receipt file
+    value: ${{ steps.capture.outputs.receipt }}
+  outcome:
+    description: Capture outcome (passed, failed, blocked, not_run, unsupported, flaky)
+    value: ${{ steps.capture.outputs.outcome }}
+  window-id:
+    description: Observed window ID
+    value: ${{ steps.capture.outputs.window-id }}
+  frame-hash:
+    description: SHA-256 of the captured image
+    value: ${{ steps.capture.outputs.frame-hash }}
+  target-pid:
+    description: Observed target process ID
+    value: ${{ steps.capture.outputs.target-pid }}
 
 runs:
   using: composite
@@ -44,13 +88,14 @@ runs:
           # xdpyinfo, not xorg-x11-utils: Fedora retired that umbrella package
           # and split it per-utility, so installing it fails outright.
           dnf -y install --setopt=install_weak_deps=False \
-            xorg-x11-server-Xvfb xdpyinfo xdotool ImageMagick
+            xorg-x11-server-Xvfb xdpyinfo xdotool ImageMagick python3 procps-ng
         else
           sudo apt-get update -qq
-          sudo apt-get install -y -qq xvfb x11-utils xdotool imagemagick
+          sudo apt-get install -y -qq xvfb x11-utils xdotool imagemagick python3 procps
         fi
 
     - name: Capture
+      id: capture
       shell: bash
       env:
         WIDTHxHEIGHT: ${{ inputs.geometry }}
@@ -59,6 +104,12 @@ runs:
         OUT_DIR: ${{ inputs.out-dir }}
         APP_NAME: ${{ inputs.name }}
         APP_COMMAND: ${{ inputs.command }}
+        APP_ID: ${{ inputs.app-id }}
+        WM_CLASS: ${{ inputs.wm-class }}
+        READINESS_PREDICATE: ${{ inputs.readiness-predicate }}
+        DEADLINE: ${{ inputs.deadline }}
+        CAPTURE_MODE: ${{ inputs.capture-mode }}
+        CAPTURE_REQUIRED: ${{ inputs.required }}
       run: |
         set -euo pipefail
         # The script lives beside this action rather than in scripts/, so the
