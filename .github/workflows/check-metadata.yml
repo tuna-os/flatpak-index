@@ -26,3 +26,9 @@ jobs:
 
       - name: Check AppStream metadata against the registry
         run: ./scripts/enrich-index.py served-index.json --check
+      - name: Check freshness and installability against the registry
+        # enrich-index.py above confirms the served index still carries the
+        # metadata the registry has; this confirms the served index still points
+        # at what the registry currently serves, so a newer publish that moved a
+        # tag is caught as drift rather than silently lagging production.
+        run: ./scripts/check-freshness.py served-index.json --check
