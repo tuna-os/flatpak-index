@@ -1,9 +1,8 @@
 name: Check remote metadata
 
 # Verifies that every app published to the live remote still carries the
-# AppStream metadata software centres need. This checks the served index, not
-# this repository's historical snapshot, so it runs on a schedule rather than
-# on push.
+# AppStream metadata software centres need, and validates the live served catalog
+# against repository descriptor and OCI index specifications.
 
 on:
   schedule:
@@ -31,3 +30,8 @@ jobs:
 
       - name: Check AppStream metadata against the registry
         run: ./scripts/enrich-index.py served-index.json --check
+
+      - name: Validate catalog structure and AppStream catalogue
+        run: python3 -m unittest tests/test_index.py -v
+        env:
+          FLATPAK_INDEX_FILE: served-index.json

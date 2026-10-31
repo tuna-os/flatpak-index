@@ -27,9 +27,9 @@ The `tuna-os/docs` repository supplies the production descriptor at
 `AuthenticatorName=org.flatpak.Authenticator.Oci` so Flatpak can get an
 anonymous token from GHCR.
 
-Do not confuse that production descriptor with this repository's root
-`tuna-os.flatpakrepo`. The root file is a snapshot on GitHub Pages that is not
-authoritative and intentionally has no `AuthenticatorName`.
+This repository's root `tuna-os.flatpakrepo` also points at the production
+remote, but intentionally has no `AuthenticatorName`. Use the production
+descriptor above for new installations.
 
 The authenticator does not fix the known `remote-info` 401 (see
 [tuna-os/flatpak-index#96](https://github.com/tuna-os/flatpak-index/issues/96)).

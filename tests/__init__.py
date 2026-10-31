@@ -1,1 +1,1 @@
-"""Contract tests for the published Flatpak index snapshot."""
+"""Contract tests for the Flatpak index tooling and the served index."""
