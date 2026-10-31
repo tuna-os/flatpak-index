@@ -24,6 +24,22 @@ The `tunaos-org` Cloudflare Worker serves `tunaos.org/flatpak/`, with
 static assets from the [tuna-os/docs](https://github.com/tuna-os/docs) repo.
 For the add, update, pause, and retire workflow, see the [application lifecycle runbook](docs/APP-LIFECYCLE.md).
 
+## Trust model
+
+The remote is **unsigned and authenticated only by HTTPS**. It has no GPG key
+or published cosign/Sigstore verification policy. The index pins OCI images by
+digest, which identifies their bytes; it does not authenticate who selected
+those digests. Flatpak does not independently verify this index's publisher.
+Users trust the `tuna-os/docs` writers, its CI and deployment credentials,
+Cloudflare, and the GHCR package publishers. A compromised index writer can
+replace any app, including the installers that run privileged disk operations.
+
+Signing and client verification are deferred to a separate change, per the
+[maintainer decision in #25](https://github.com/tuna-os/flatpak-index/issues/25).
+The credential migration is described in [Publishing](docs/PUBLISHING.md).
+The pull-based tooling below is a migration target; it does not revoke the
+shared credentials already installed in application repositories.
+
 <!-- hive-contribute-plea: donated-compute appeal, keep in sync across repos -->
 ## Contribute compute — no code needed
 
@@ -196,53 +212,24 @@ jobs:
         run: |
           echo "$GITHUB_TOKEN" | skopeo login ghcr.io -u "${{ github.actor }}" --password-stdin
           skopeo copy oci:<app>.oci docker://ghcr.io/tuna-os/<app>:latest
-      - name: Check out central index
-        uses: actions/checkout@v4
-        with:
-          repository: tuna-os/docs
-          token: ${{ secrets.FLATPAK_INDEX_TOKEN }}
-          path: index-repo
-      - name: Update central index (tuna-os/docs)
-        run: |
-          python3 .github/scripts/update-index.py \
-            --oci-dir <app>.oci \
-            --index-file index-repo/static/flatpak/index/static \
-            --repo-name tuna-os/<app> \
-            --require-appstream \
-            --tags latest
-          cd index-repo
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add static/flatpak/index/static
-          if git diff --cached --quiet; then
-            echo "No index changes"
-          else
-            git commit -m "chore(flatpak): update <App> OCI index"
-            git push origin main
-          fi
 ```
 
-Also vendor [`scripts/update-index.py`](scripts/update-index.py) from this repo
-to `.github/scripts/update-index.py`, or use the `update-flatpak-index` action
-from `tuna-os/.github` (`tuna-os/.github/actions/update-flatpak-index`). **Prefer
-the composite action.** The weekly drift check in `tuna-os/.github` treats the
-action as canonical, not this file. In the past, they drifted apart.
-See [AGENTS.md](AGENTS.md#three-copies-of-one-script) for the history, and for
-why that check does not look at this file. Do not copy an older version
-from another app repository — see [App metadata](#app-metadata) for why.
+Publishers stop after uploading their OCI image to GHCR. They must not check
+out or push to `tuna-os/docs`, and need no cross-repository publishing secret.
+Use the repository's own `GITHUB_TOKEN` with `packages: write` for its package.
 
-### 4. Set repo secrets
+### 4. Register the source with the index owner
 
-- **`FLATPAK_INDEX_TOKEN`**: A fine-grained GitHub PAT with **Contents: read and
-  write** access only to `tuna-os/docs`. Do not reuse a general-purpose CLI or
-  account token.
+Submit a reviewed policy entry in `tuna-os/docs/.github/flatpak-sources.json`
+binding the GHCR repository and tag to the exact Flatpak ref and OCI
+architecture. See [Publishing](docs/PUBLISHING.md) for the policy format,
+receiver workflow, migration order, and credential revocation checklist.
 
-```bash
-gh secret set FLATPAK_INDEX_TOKEN --repo tuna-os/<app>
-```
-
-Enter the fine-grained token at the prompt. Do not place token values in command
-arguments, repository URLs, or documentation.
+The docs-side workflow pulls only approved public images and updates the
+index using its own short-lived `GITHUB_TOKEN`. Neither an application
+publisher nor a dispatch payload selects an index path, application ID, or
+repository to write. This replaces the old `FLATPAK_INDEX_TOKEN` pattern;
+do not create that secret for a new app.
 
 ### 5. Push to trigger the build
 
@@ -254,7 +241,8 @@ The CI will:
 1. Build the flatpak in the GNOME 50 container
 2. Export it as an OCI image
 3. Push to `ghcr.io/tuna-os/<app>:latest`
-4. Update the central index in `tuna-os/docs/static/flatpak/index/static`
+4. The docs-side refresh workflow pulls approved images and updates
+   `tuna-os/docs/static/flatpak/index/static` after the migration is installed
 5. The `tunaos-org` Cloudflare Worker publishes the new assets at `tunaos.org`
 
 ## App metadata
@@ -266,7 +254,7 @@ OCI remote that metadata travels as three image labels —
 `flatpak build-bundle --oci` writes automatically from the app's
 `/app/share/metainfo/<app-id>.metainfo.xml`.
 
-The publisher must copy those labels into `index/static`. If it does not,
+The index writer must copy those labels into `index/static`. If it does not,
 flatpak cannot build a catalogue. Every app in the remote then shows
 as a bare application ID with an "Unknown" licence and no screenshots.
 
