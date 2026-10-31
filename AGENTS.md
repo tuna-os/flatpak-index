@@ -48,29 +48,23 @@ being published. Do not narrow that tuple.
 declarations of one invariant. `tests/test_label_policy.py` pins them to each
 other — update both together, and let that test tell you if they've drifted.
 
-## Three copies of one script
+## Vendoring contract
 
-`scripts/update-index.py` describes itself as *the canonical copy*, vendored by
-application repositories at `.github/scripts/update-index.py` and run from
-their publish workflow after `flatpak build-bundle --oci`. A third lives in
-`tuna-os/.github` as the `update-flatpak-index` composite action.
+`scripts/update-index.py` is the **single canonical copy**. Application repos
+vendor it at `.github/scripts/update-index.py`, run from their publish workflow
+after `flatpak build-bundle --oci`. `tuna-os/.github` ships it as the
+`update-flatpak-index` composite action — a **synced copy** of this file (#123),
+not a second source of truth. That is why `update-index.py` stays standalone:
+it has to be one file to be vendored.
 
-They have **drifted structurally** — this copy is 146 lines, the composite
-action's is 118 — while currently agreeing on the label behaviour above.
+`tuna-os/.github/flatpak-tooling-drift-check.yml` enforces the contract: it
+reads this file's blob SHA as canonical and fails when the composite action or
+any application repo's vendored copy differs. `tuna-os/flatpak-index` is the
+canonical source, so it is not itself in the checked list.
 
-There *is* a sync check, and it does not cover this file.
-`flatpak-tooling-drift-check.yml` in `tuna-os/.github` runs weekly and compares
-eight application repos' `.github/scripts/update-index.py` against
-`.github/actions/update-flatpak-index/update-index.py`, which it treats as
-canonical. `tuna-os/flatpak-index` is not in its list. So this file's docstring
-claim to be "the canonical copy" is both unchecked and contradicted by the
-org's own definition — and the two disagree today (blob `b7dc0458` here,
-`6eaa8186` there).
-
-That check has also been failing on every scheduled run since 2026-08-17.
-
-When you change this file, check the other two deliberately; a fix landing in
-only one is the failure mode this arrangement invites.
+When you change this file, update the composite action and every vendored copy
+to match — the drift-check fails otherwise, and a fix landing in only one copy
+is the failure mode this arrangement invites.
 
 ## Checks
 
