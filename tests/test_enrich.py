@@ -23,6 +23,13 @@ spec.loader.exec_module(enrich_index)
 APPDATA_OK = "<component><screenshots><screenshot>x</screenshot></screenshots></component>"
 APPDATA_NO_SHOTS = "<component></component>"
 APPDATA_BROKEN = "<component"
+# App-level labels live under ApplicationMetadata in the new index format, never
+# on an image. enrich must never copy them back onto an image.
+APP_LEVEL_LABELS = (
+    "org.flatpak.metadata",
+    "org.flatpak.commit-metadata.xa.metadata",
+    "org.flatpak.body",
+)
 
 
 class FakeRegistry:
@@ -178,6 +185,67 @@ class EnrichTests(unittest.TestCase):
         updated, problems, warnings = enrich_index.enrich(index, registry, verbose=False)
         self.assertEqual(updated, 2)
         self.assertEqual(len(registry.calls), 2)
+
+    def test_does_not_rewrite_app_level_labels_new_format(self):
+        # New format: app-level labels live under ApplicationMetadata. The
+        # registry still carries them, but enrich must not copy them back onto
+        # the image -- that would undo the move update-index.py made.
+        app_level = {
+            "org.flatpak.metadata": "[Application]\nname=app/one\n",
+            "org.flatpak.commit-metadata.xa.metadata": "base64data",
+            "org.flatpak.body": "Name: app/one\n",
+        }
+        image_labels = {
+            "org.flatpak.ref": "app/app/one/x86_64/master",
+            "org.freedesktop.appstream.appdata": APPDATA_OK,
+            "org.freedesktop.appstream.icon-64": "icon64",
+            "org.freedesktop.appstream.icon-128": "icon128",
+        }
+        index = make_index(
+            {"Digest": "sha256:aaa", "Architecture": "amd64", "Labels": dict(image_labels)}
+        )
+        index["ApplicationMetadata"] = {"app/one/x86_64": dict(app_level)}
+        registry = FakeRegistry(labels_by_repo={"app/one": {**image_labels, **app_level}})
+
+        updated, problems, warnings = enrich_index.enrich(index, registry, verbose=False)
+
+        self.assertEqual(updated, 0)
+        labels = index["Results"][0]["Images"][0]["Labels"]
+        for name in APP_LEVEL_LABELS:
+            self.assertNotIn(name, labels)
+        self.assertEqual(index["ApplicationMetadata"], {"app/one/x86_64": dict(app_level)})
+
+    def test_leaves_app_level_labels_on_image_old_format(self):
+        # Old format: app-level labels sit on the image, no ApplicationMetadata.
+        # enrich must leave them there and must not invent an ApplicationMetadata
+        # block.
+        app_level = {
+            "org.flatpak.metadata": "[Application]\nname=app/one\n",
+            "org.flatpak.commit-metadata.xa.metadata": "base64data",
+            "org.flatpak.body": "Name: app/one\n",
+        }
+        image_labels = {
+            "org.flatpak.ref": "app/app/one/x86_64/master",
+            "org.freedesktop.appstream.appdata": APPDATA_OK,
+            "org.freedesktop.appstream.icon-64": "icon64",
+            "org.freedesktop.appstream.icon-128": "icon128",
+        }
+        index = make_index(
+            {
+                "Digest": "sha256:aaa",
+                "Architecture": "amd64",
+                "Labels": {**image_labels, **app_level},
+            }
+        )
+        registry = FakeRegistry(labels_by_repo={"app/one": {**image_labels, **app_level}})
+
+        updated, problems, warnings = enrich_index.enrich(index, registry, verbose=False)
+
+        self.assertEqual(updated, 0)
+        self.assertNotIn("ApplicationMetadata", index)
+        labels = index["Results"][0]["Images"][0]["Labels"]
+        for name in APP_LEVEL_LABELS:
+            self.assertIn(name, labels)
 
 
 class ScreenshotCountTests(unittest.TestCase):

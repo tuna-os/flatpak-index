@@ -26,6 +26,14 @@ REQUIRED_LABELS = ("org.flatpak.ref", "org.flatpak.metadata")
 # app name, icon, licence, screenshots, release notes -- from the
 # org.freedesktop.appstream.* ones.
 KEEP_LABEL_PREFIXES = ("org.flatpak.", "org.freedesktop.appstream.")
+# Labels that describe the application itself, not one built image: identical
+# for every image an app publishes at one architecture, so they move into
+# ApplicationMetadata (see merge_entry) instead of repeating on each image.
+APP_LEVEL_LABELS = (
+    "org.flatpak.metadata",
+    "org.flatpak.commit-metadata.xa.metadata",
+    "org.flatpak.body",
+)
 
 APPSTREAM_LABELS = (
     "org.freedesktop.appstream.appdata",
@@ -95,6 +103,20 @@ def app_ref(image):
     return (image.get("Labels") or {}).get("org.flatpak.ref")
 
 
+def image_app_identity(image_entry):
+    """Return (app-id, flatpak-arch) for an image from its org.flatpak.ref.
+
+    flatpak-arch comes from the ref (``app/<id>/<arch>/<branch>``) rather than
+    the OCI ``Architecture`` because the application metadata below it is written
+    per flatpak arch and two OCI arches can share one.
+    """
+    ref = (image_entry.get("Labels") or {}).get("org.flatpak.ref", "")
+    parts = ref.split("/")
+    app_id = parts[1] if len(parts) > 1 else ""
+    flatpak_arch = parts[2] if len(parts) > 2 else image_entry.get("Architecture", "")
+    return app_id, flatpak_arch
+
+
 def merge_entry(index_data, repo_name, image_entry):
     """Insert image_entry, replacing only the same application for the same arch.
 
@@ -103,7 +125,21 @@ def merge_entry(index_data, repo_name, image_entry):
     Replacing by architecture alone lets concurrent frontend publishes
     overwrite each other until a single frontend is left standing, so the
     replacement key is (architecture, application ref).
+
+    Application-level labels (see APP_LEVEL_LABELS) are pulled off the image and
+    stored once under ApplicationMetadata keyed by app id and flatpak arch, so
+    they are not repeated for every architecture or version of the same app.
     """
+    labels = dict(image_entry.get("Labels") or {})
+    app_level = {name: labels.pop(name) for name in APP_LEVEL_LABELS if name in labels}
+    app_id, flatpak_arch = image_app_identity(image_entry)
+    image_entry = {**image_entry, "Labels": labels, "AppRef": app_id}
+
+    if app_level:
+        index_data.setdefault("ApplicationMetadata", {})[
+            f"{app_id}/{flatpak_arch}"
+        ] = app_level
+
     for result in index_data.setdefault("Results", []):
         if result["Name"] == repo_name:
             result["Images"] = [

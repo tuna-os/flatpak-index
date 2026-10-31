@@ -9,12 +9,17 @@ from xml.etree import ElementTree
 
 ROOT = Path(__file__).resolve().parents[1]
 DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
-REQUIRED_LABELS = {
-    "org.flatpak.metadata",
+# Labels every built image must carry. org.flatpak.metadata moved to the
+# ApplicationMetadata block (see REQUIRED_APP_LABELS) in the new format, so it is
+# no longer expected on the image itself.
+REQUIRED_IMAGE_LABELS = {
     "org.flatpak.ref",
     "org.flatpak.commit",
     "org.flatpak.timestamp",
 }
+# App-level labels: identical for every image an app publishes at one
+# architecture, so they live once under ApplicationMetadata, not on each image.
+REQUIRED_APP_LABELS = {"org.flatpak.metadata"}
 
 
 class IndexTests(unittest.TestCase):
@@ -47,10 +52,23 @@ class IndexTests(unittest.TestCase):
                     )
                     self.assertEqual(image["OS"], "linux")
                     self.assertIn("latest", image["Tags"])
-                    self.assertLessEqual(REQUIRED_LABELS, image["Labels"].keys())
+                    self.assertLessEqual(REQUIRED_IMAGE_LABELS, image["Labels"].keys())
                     self.assertRegex(image["Labels"]["org.flatpak.commit"], r"^[0-9a-f]{64}$")
                     self.assertTrue(image["Labels"]["org.flatpak.ref"].startswith("app/"))
                 self.assertEqual(len(architectures), len(set(architectures)))
+
+    def test_application_metadata_carries_app_level_labels(self):
+        # App-level labels live once under ApplicationMetadata, keyed by
+        # app id + flatpak arch, not repeated on each image.
+        app_metadata = self.index.get("ApplicationMetadata", {})
+        self.assertTrue(app_metadata)
+        for result in self.index["Results"]:
+            for image in result["Images"]:
+                parts = (image.get("Labels") or {}).get("org.flatpak.ref", "").split("/")
+                key = f"{parts[1]}/{parts[2]}"
+                with self.subTest(name=result["Name"], arch=image["Architecture"]):
+                    self.assertIn(key, app_metadata)
+                    self.assertLessEqual(REQUIRED_APP_LABELS, app_metadata[key].keys())
 
     def test_image_size_labels_are_positive_integers(self):
         size_labels = (

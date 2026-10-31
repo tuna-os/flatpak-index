@@ -165,6 +165,60 @@ class PublisherTests(unittest.TestCase):
         self.assertEqual(by_arch["amd64"], "sha256:" + "f" * 64)
         self.assertTrue(by_arch["arm64"].startswith("sha256:"))
 
+    def test_merge_entry_moves_app_level_labels_to_application_metadata(self):
+        # App-level labels (org.flatpak.metadata, org.flatpak.body,
+        # org.flatpak.commit-metadata.xa.metadata) describe the application, not
+        # one built image. merge_entry removes them from the image and records
+        # them once under ApplicationMetadata, keyed by app id + flatpak arch.
+        labels = {
+            **FLATPAK_LABELS,
+            **APPSTREAM_LABELS,
+            "org.flatpak.body": "Name: org.tunaos.example\n",
+            "org.flatpak.commit-metadata.xa.metadata": base64.b64encode(b"meta").decode(),
+        }
+        index = {"Registry": "https://ghcr.io", "Results": []}
+        _, entry = self.build_entry(labels)
+        update_index.merge_entry(index, "tuna-os/example", entry)
+
+        image = index["Results"][0]["Images"][0]
+        for name in update_index.APP_LEVEL_LABELS:
+            self.assertNotIn(name, image["Labels"])
+        for name in ("org.flatpak.ref", "org.flatpak.commit", "org.flatpak.timestamp"):
+            self.assertIn(name, image["Labels"])
+        self.assertEqual(image["AppRef"], "org.tunaos.example")
+
+        expected = {name: labels[name] for name in update_index.APP_LEVEL_LABELS}
+        self.assertEqual(
+            index["ApplicationMetadata"]["org.tunaos.example/x86_64"], expected
+        )
+
+    def test_two_architectures_have_separate_application_metadata_entries(self):
+        # Two architectures of the same app get separate ApplicationMetadata
+        # entries: the key is app id + flatpak arch, so amd64 and arm64 each get
+        # their own key, but both carry the same app-level labels.
+        index = {"Registry": "https://ghcr.io", "Results": []}
+        for arch, flatpak_arch in (("amd64", "x86_64"), ("arm64", "aarch64")):
+            labels = {
+                **FLATPAK_LABELS,
+                **APPSTREAM_LABELS,
+                "org.flatpak.ref": f"app/org.tunaos.example/{flatpak_arch}/master",
+            }
+            _, entry = self.build_entry(labels, architecture=arch)
+            update_index.merge_entry(index, "tuna-os/example", entry)
+
+        app_metadata = index["ApplicationMetadata"]
+        self.assertEqual(
+            sorted(app_metadata),
+            ["org.tunaos.example/aarch64", "org.tunaos.example/x86_64"],
+        )
+        expected = {
+            name: FLATPAK_LABELS[name]
+            for name in update_index.APP_LEVEL_LABELS
+            if name in FLATPAK_LABELS
+        }
+        for value in app_metadata.values():
+            self.assertEqual(value, expected)
+
     def test_an_app_is_indexed_under_its_repo_name_not_its_app_id(self):
         # Compass's ID is org.tunaos.compass and it publishes to
         # ghcr.io/tuna-os/compass: the index Name is the registry path, and
