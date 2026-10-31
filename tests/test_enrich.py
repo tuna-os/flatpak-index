@@ -405,6 +405,155 @@ class EnrichIndexTests(unittest.TestCase):
         finally:
             tmp_path.unlink(missing_ok=True)
 
+    def test_main_skips_write_on_registry_error_after_earlier_change(self):
+        # A registry error on a later image rolls back the earlier image's staged
+        # change, leaving the index byte-for-byte unchanged.
+        catalogue = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<components version="0.8" origin="flatpak">'
+            '<component type="desktop-application">'
+            '<id>org.tunaos.demo</id>'
+            '<screenshots><screenshot><image>https://e/1.png</image></screenshot></screenshots>'
+            '</component></components>'
+        )
+        index = {
+            "Registry": "https://ghcr.io",
+            "Results": [
+                {
+                    "Name": "tuna-os/demo",
+                    "Images": [
+                        {"Architecture": "amd64", "Digest": "sha256:" + "a" * 64, "Labels": {}},
+                        {"Architecture": "arm64", "Digest": "sha256:" + "b" * 64, "Labels": {}},
+                    ],
+                }
+            ],
+        }
+        with tempfile.NamedTemporaryFile("w+", delete=False) as tmp:
+            json.dump(index, tmp)
+            tmp_path = Path(tmp.name)
+        original = tmp_path.read_text()
+        try:
+            def labels(repository, digest):
+                if digest == "sha256:" + "b" * 64:
+                    raise RegistryError("404 Not Found")
+                return {
+                    "org.freedesktop.appstream.appdata": catalogue,
+                    "org.freedesktop.appstream.icon-64": "icon64",
+                    "org.freedesktop.appstream.icon-128": "icon128",
+                }
+
+            with (
+                patch.object(enrich_index.Registry, "image_labels", side_effect=labels),
+                patch("sys.argv", ["enrich-index.py", str(tmp_path)]),
+            ):
+                self.assertEqual(enrich_index.main(), 1)
+            self.assertEqual(tmp_path.read_text(), original)
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+    def test_main_skips_write_on_metadata_problem_after_earlier_change(self):
+        # A later image missing AppStream metadata is a hard problem too: the run
+        # rolls back even though an earlier image updated successfully.
+        catalogue = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<components version="0.8" origin="flatpak">'
+            '<component type="desktop-application">'
+            '<id>org.tunaos.demo</id>'
+            '<screenshots><screenshot><image>https://e/1.png</image></screenshot></screenshots>'
+            '</component></components>'
+        )
+        index = {
+            "Registry": "https://ghcr.io",
+            "Results": [
+                {
+                    "Name": "tuna-os/demo",
+                    "Images": [
+                        {"Architecture": "amd64", "Digest": "sha256:" + "a" * 64, "Labels": {}},
+                        {"Architecture": "arm64", "Digest": "sha256:" + "b" * 64, "Labels": {}},
+                    ],
+                }
+            ],
+        }
+        with tempfile.NamedTemporaryFile("w+", delete=False) as tmp:
+            json.dump(index, tmp)
+            tmp_path = Path(tmp.name)
+        original = tmp_path.read_text()
+        try:
+            def labels(repository, digest):
+                if digest == "sha256:" + "b" * 64:
+                    return {}
+                return {
+                    "org.freedesktop.appstream.appdata": catalogue,
+                    "org.freedesktop.appstream.icon-64": "icon64",
+                    "org.freedesktop.appstream.icon-128": "icon128",
+                }
+
+            with (
+                patch.object(enrich_index.Registry, "image_labels", side_effect=labels),
+                patch("sys.argv", ["enrich-index.py", str(tmp_path)]),
+            ):
+                self.assertEqual(enrich_index.main(), 1)
+            self.assertEqual(tmp_path.read_text(), original)
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+    def test_main_write_is_atomic_no_temp_left_behind(self):
+        # A fully reconciled run writes every staged change atomically and leaves
+        # no temp file behind.
+        catalogue = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<components version="0.8" origin="flatpak">'
+            '<component type="desktop-application">'
+            '<id>org.tunaos.demo</id>'
+            '<screenshots><screenshot><image>https://e/1.png</image></screenshot></screenshots>'
+            '</component></components>'
+        )
+        index = {
+            "Registry": "https://ghcr.io",
+            "Results": [
+                {
+                    "Name": "tuna-os/demo",
+                    "Images": [
+                        {"Architecture": "amd64", "Digest": "sha256:" + "a" * 64, "Labels": {}},
+                    ],
+                }
+            ],
+        }
+        with tempfile.NamedTemporaryFile("w+", delete=False) as tmp:
+            json.dump(index, tmp)
+            tmp_path = Path(tmp.name)
+        original = tmp_path.read_text()
+        try:
+            with patch.object(enrich_index.Registry, "image_labels") as mock_labels:
+                mock_labels.return_value = {
+                    "org.freedesktop.appstream.appdata": catalogue,
+                    "org.freedesktop.appstream.icon-64": "icon64",
+                    "org.freedesktop.appstream.icon-128": "icon128",
+                }
+                with patch("sys.argv", ["enrich-index.py", str(tmp_path)]):
+                    self.assertEqual(enrich_index.main(), 0)
+            labels = json.loads(tmp_path.read_text())["Results"][0]["Images"][0]["Labels"]
+            self.assertIn("org.freedesktop.appstream.appdata", labels)
+            self.assertNotEqual(tmp_path.read_text(), original)
+            self.assertEqual(list(tmp_path.parent.glob(f".{tmp_path.name}.*.tmp")), [])
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+    def test_write_index_atomic_cleans_up_on_failure(self):
+        # If the write fails after the temp file exists, the temp file must be
+        # removed and the original index left untouched.
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "index.json"
+            path.write_text("{}\n")
+            before = sorted(p.name for p in Path(d).iterdir())
+            with (
+                patch.object(enrich_index.os, "replace", side_effect=OSError("boom")),
+                self.assertRaises(OSError),
+            ):
+                enrich_index.write_index_atomic(path, {"a": 1})
+            self.assertEqual(sorted(p.name for p in Path(d).iterdir()), before)
+            self.assertEqual(path.read_text(), "{}\n")
+
 
 if __name__ == "__main__":
     unittest.main()

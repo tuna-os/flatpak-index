@@ -16,10 +16,12 @@ maps grow.
 """
 
 import argparse
+import contextlib
 import json
 import os
 import re
 import sys
+import tempfile
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -115,6 +117,29 @@ def enrich(index_data, registry, verbose=True):
     return updated, problems, warnings
 
 
+def write_index_atomic(path, data):
+    """Serialize ``data`` to ``path`` atomically via a temp file plus ``os.replace``.
+
+    ``os.replace`` is atomic on POSIX, so a concurrent reader sees either the
+    old complete index or the new one, never a half-written file. The temp file
+    is created in the same directory as ``path`` so ``os.replace`` stays on one
+    filesystem, and its mode is matched to the destination so the index keeps
+    its permissions.
+    """
+    payload = json.dumps(data, indent=2) + "\n"
+    fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as tmp:
+            tmp.write(payload)
+        with contextlib.suppress(FileNotFoundError):
+            os.chmod(tmp_name, os.stat(path).st_mode)
+        os.replace(tmp_name, path)
+    except BaseException:
+        with contextlib.suppress(FileNotFoundError):
+            os.unlink(tmp_name)
+        raise
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("index_file", type=Path, help="Path to the index/static file")
@@ -149,8 +174,14 @@ def main():
         print("\nIndex is up to date with the registry.")
         return 0
 
-    if updated:
-        args.index_file.write_text(json.dumps(index_data, indent=2) + "\n")
+    if problems:
+        print(
+            "\nSkipped write: reconciliation had hard problems; re-run once they "
+            "clear so the whole index updates atomically instead of as a partial "
+            "repair. The index on disk is unchanged."
+        )
+    elif updated:
+        write_index_atomic(args.index_file, index_data)
         print(f"\nWrote {args.index_file}: {updated} image(s) updated.")
     else:
         print("\nNothing to do.")
