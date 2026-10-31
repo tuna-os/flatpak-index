@@ -6,15 +6,15 @@ features and packaging roadmaps remain in their respective repositories.
 
 ## Current state
 
-The production remote at `https://tunaos.org/flatpak/` is served from
-`tuna-os/docs` by the `tunaos-org` Cloudflare Worker, while this repository
-contains a historical index snapshot and a separate GitHub Pages deployment.
-Application repositories publish OCI images and are currently documented to
-push index updates directly to `docs` with a `FLATPAK_INDEX_TOKEN`.
+The `tunaos-org` Cloudflare Worker serves the production remote at
+`https://tunaos.org/flatpak/` with static assets from `tuna-os/docs`.
+The decision in issue #171 confirms `tuna-os/docs` as the canonical catalog.
+Release workflows send updates directly to `tuna-os/docs` with
+`FLATPAK_INDEX_TOKEN`.
 
-Until the consolidation decision below is complete, treat the index under
-`tuna-os/docs/static/flatpak/` as production and this repository as a reference
-snapshot. Do not infer production state from this repository's Pages site.
+This repository provides tooling, templates, and metadata audits.
+It does not serve the production catalog. Do not infer production state from
+this repository's Pages site.
 
 ## Near term: decide and make drift visible
 
@@ -22,7 +22,7 @@ Target: one planning cycle.
 
 - Name an accountable owner for the remote and choose its long-term source
   repository: move production ownership here, or formally retire this
-  repository as an index host.
+  repository as an index host. (Complete: see Decision record.)
 - Inventory every documented app ID, OCI reference, supported architecture,
   and publisher workflow against the served production index.
 - Define a freshness SLO from a successful app publish to remote availability.
@@ -31,8 +31,8 @@ Target: one planning cycle.
 - Document an incident owner and a tested rollback procedure for a bad index
   publication.
 
-Exit gate: the ownership decision is recorded, the production source is named
-in both repositories, and drift is measured from the user-facing endpoint.
+Exit gate: the Decision record names the canonical catalog, documentation
+identifies `tuna-os/docs`, and CI measures drift from the served endpoint.
 
 ## Mid term: consolidate publication
 
@@ -75,6 +75,16 @@ and non-authoritative copies cannot be mistaken for the live remote.
 
 ## Decision record
 
-Record the ownership decision and dates here when approved. Until then, this
-roadmap describes direction rather than a commitment to move production out of
-`tuna-os/docs`.
+### 2026-10-30: Canonical catalog and production ownership (#171)
+
+Maintainers recorded the catalog ownership decision in issue #171:
+
+- **Canonical catalog repository:** `tuna-os/docs` (`static/flatpak/index/static`).
+- **Production remote URL:** `https://tunaos.org/flatpak/tuna-os.flatpakrepo`.
+- **Production served index:** `https://tunaos.org/flatpak/index/static`.
+- **Server infrastructure:** The Worker for `tunaos.org` deploys assets from `tuna-os/docs`.
+- **Production catalog owner:** `tuna-os/docs` maintainers.
+- **Tooling and audit owner:** `tuna-os/flatpak-index` maintainers.
+- **Publisher target:** Workflows send updates only to `tuna-os/docs` with `FLATPAK_INDEX_TOKEN`. Publishers do not write to `flatpak-index`.
+- **Snapshot retirement:** Issue #173 removes the local `index/static` snapshot and Pages deployment.
+- **Rollback responsibility:** `tuna-os/docs` maintainers roll back bad catalog entries through a git revert of `static/flatpak/index/static` in `tuna-os/docs`.

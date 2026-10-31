@@ -20,9 +20,10 @@ sudo) for the whole machine. Then use the same scope to install and update.
 A user-scope remote needs `flatpak update --user`: plain `flatpak update`
 checks the system scope and reports nothing to update.
 
-The `tunaos-org` Cloudflare Worker serves `tunaos.org/flatpak/`, with
-static assets from the [tuna-os/docs](https://github.com/tuna-os/docs) repo.
-For the add, update, pause, and retire workflow, see the [application lifecycle runbook](docs/APP-LIFECYCLE.md).
+The Worker for `tunaos.org` serves `tunaos.org/flatpak/` from [tuna-os/docs](https://github.com/tuna-os/docs).
+The `tuna-os/docs` repository is the canonical catalog for all Flatpak releases.
+This repository provides tooling, templates, and AppStream validation.
+For the lifecycle workflow, see the [application lifecycle runbook](docs/APP-LIFECYCLE.md).
 
 <!-- hive-contribute-plea: donated-compute appeal, keep in sync across repos -->
 ## Contribute compute — no code needed
@@ -222,6 +223,10 @@ jobs:
           fi
 ```
 
+Application workflows must write only to `tuna-os/docs`.
+Publishers should use the `publish-flatpak-index` action in `tuna-os/.github`.
+That action manages authentication, updates `static/flatpak/index/static`, and retries push conflicts.
+
 Also vendor [`scripts/update-index.py`](scripts/update-index.py) from this repo
 to `.github/scripts/update-index.py`, or use the `update-flatpak-index` action
 from `tuna-os/.github` (`tuna-os/.github/actions/update-flatpak-index`). **Prefer
@@ -310,10 +315,19 @@ ghcr.io/tuna-os/<app>         → OCI images with flatpak metadata
   └── ...
 ```
 
-## Index format
+## Canonical catalog and index format
+
+`tuna-os/docs` is the authoritative repository for the Flatpak catalog.
+The live catalog file lives at `static/flatpak/index/static` in `tuna-os/docs`.
+The Worker for `tunaos.org` deploys assets from `tuna-os/docs` to `https://tunaos.org/flatpak/`.
+Users add the remote through `https://tunaos.org/flatpak/tuna-os.flatpakrepo`.
 
 The `index/static` file is a JSON array with OCI image references. Each entry maps an app name to its manifest digest and flatpak metadata labels. Flatpak downloads this index, finds the right image by app ID and architecture, then pulls it from the GHCR registry.
 
-> **Note:** The authoritative index is `static/flatpak/index/static` in the [tuna-os/docs](https://github.com/tuna-os/docs) repo, served at <https://tunaos.org/flatpak/>. The copy of `index/static` in this repo is a **historical snapshot**, not what the remote serves. Treat it as reference only; the table (and tunaos.org) reflect the live remote.
->
-> **This repo's [GitHub Pages site](https://tuna-os.github.io/flatpak-index/) and root `tuna-os.flatpakrepo` file are a non-authoritative snapshot.** Do not use `flatpak remote-add` on that URL or file. Always use the remote URL <https://tunaos.org/flatpak/tuna-os.flatpakrepo> from the [top of this README](#tunaos-flatpak-index).
+### Ownership and responsibilities
+
+- **Authoritative repository:** `tuna-os/docs` owns the production catalog (`static/flatpak/index/static`).
+- **Tooling repository:** `tuna-os/flatpak-index` provides index scripts, metainfo templates, and AppStream validation. It is not an independent distribution host.
+- **Publish target:** Release workflows send updates only to `tuna-os/docs` with `FLATPAK_INDEX_TOKEN`. Publishers do not write to `flatpak-index`.
+- **Rollback:** Production rollback belongs to `tuna-os/docs` maintainers. If a release breaks the catalog, maintainers revert `static/flatpak/index/static` in `tuna-os/docs`. They then verify the live endpoint at `https://tunaos.org/flatpak/index/static`. Edits in `flatpak-index` do not change production.
+- **Local snapshot status:** The root `tuna-os.flatpakrepo` file points to `oci+https://tunaos.org/flatpak`. Retirement of the local `index/static` snapshot proceeds under issue #173.

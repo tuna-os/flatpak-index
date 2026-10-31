@@ -1,9 +1,9 @@
 # Flatpak application lifecycle
 
-This repository contains index tooling and a reference snapshot. The
-`tunaos-org` Cloudflare Worker serves the production remote from `tuna-os/docs`
-at `https://tunaos.org/flatpak/`. Follow this distinction for every lifecycle
-change.
+This repository contains index tooling and a reference snapshot.
+The Worker for `tunaos.org` serves the production remote from `tuna-os/docs` at `https://tunaos.org/flatpak/`.
+Per issue #171, `tuna-os/docs` is the canonical catalog.
+Follow this distinction for every lifecycle change.
 
 ## Before changing an application
 
@@ -93,6 +93,39 @@ Retirement therefore needs a coordinated, reviewed production change.
    to this repository's reference snapshot as a retirement.
 4. Run the served-index audit and verify the retired app is absent from the
    served index. Keep the retirement decision and date in the change record.
+
+## Respond to a bad publication
+
+A publication is bad when the served remote does not match the registry or catalog.
+For example, `enrich-index.py --check` reports missing metadata.
+In this case, roll back to the previous good index.
+
+The Worker for `tunaos.org` serves production from `tuna-os/docs`.
+Therefore, a rollback is a change to `tuna-os/docs`, not this repository.
+The `index/static` file in this repository is a reference snapshot.
+Do not use it as the recovery source.
+
+1. Confirm the publication error against the registry:
+
+   ```sh
+   curl -sSfL -o served-index.json \
+     https://tunaos.org/flatpak/index/static
+   ./scripts/enrich-index.py served-index.json --check
+   ```
+
+2. Identify the last good commit to `static/flatpak/index/static` in `tuna-os/docs`.
+
+3. Revert the bad commit in `tuna-os/docs`.
+   The Worker re-serves the asset after a push to `main`.
+   Keep `FLATPAK_INDEX_TOKEN` scoped to `tuna-os/docs`.
+   Never write token values in commands or commits.
+
+4. Verify the served URL again with the check command from step 1.
+   Confirm that catalog digests and metadata match the registry.
+
+5. Record the incident details: commit SHA, restored state, date, and operator.
+
+The owner for rollbacks is the `tuna-os/docs` maintainer team.
 
 ## Checks
 

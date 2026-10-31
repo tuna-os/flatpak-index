@@ -2,9 +2,11 @@
 
 Thank you for your work on the TunaOS Flatpak index. This repository holds
 scripts, templates, and CI actions to build and audit the Flatpak remote.
-[`README.md`](README.md) is the user guide; [`tuna-os/docs`](https://github.com/tuna-os/docs)
-owns the live index assets. The `tunaos-org` Cloudflare Worker serves the live
-index; see the README's "Index format" section for that distinction.
+[`README.md`](README.md) is the user guide.
+
+[`tuna-os/docs`](https://github.com/tuna-os/docs) owns the canonical Flatpak
+catalog at `static/flatpak/index/static`. The Worker for `tunaos.org` serves
+the live index. See the README section on canonical catalog ownership for details.
 The [runbook for the application lifecycle](docs/APP-LIFECYCLE.md) explains how contributors add, update, pause, and retire an application.
 
 <!-- hive-contribute-plea: donated-compute appeal, keep in sync across repos -->
@@ -63,9 +65,10 @@ curl -sSfL -o served-index.json https://tunaos.org/flatpak/index/static
    or extend tests under `tests/` for any behavior change.
 5. Open a PR that describes what changed and why, and link any related issue.
 
-Changes to the **production** index (`static/flatpak/index/static`) belong in
+Changes to the production index (`static/flatpak/index/static`) belong in
 `tuna-os/docs` or in the publish workflow of the target application
-repository. Do not change it here; see the README's "Index format" note.
+repository. Do not change it here; see the README section on canonical catalog ownership.
+Rollback of production entries belongs to `tuna-os/docs`.
 
 ## Questions or problems
 

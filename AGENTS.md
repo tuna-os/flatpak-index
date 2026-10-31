@@ -6,12 +6,14 @@ resolves against, plus the scripts that maintain it.
 Human docs: [`README.md`](README.md) (app list, and the step-by-step for adding
 a new Flatpak), [`docs/`](docs/).
 
-## This repo builds the index; it does not serve it
+## Canonical catalog: tuna-os/docs owns production
 
-The remote is served **from [`tuna-os/docs`](https://github.com/tuna-os/docs)**
-via the `tunaos-org` Cloudflare Worker, which deploys that repository's static
-assets at `https://tunaos.org/flatpak/`. So publishing is a two-repo operation,
-and a correct index here can still be stale in production.
+The Worker for `tunaos.org` serves the remote from [tuna-os/docs](https://github.com/tuna-os/docs).
+Per issue #171, `tuna-os/docs` (`static/flatpak/index/static`) is the canonical catalog.
+Publishers send updates directly to `tuna-os/docs`.
+This repository provides index tooling and validation.
+It does not host the canonical catalog.
+Rollback of catalog errors belongs to `tuna-os/docs`.
 
 That matters for CI: `check-metadata.yml` **curls the live served index** —
 

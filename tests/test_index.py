@@ -100,6 +100,11 @@ class RepositoryDescriptorTests(unittest.TestCase):
         self.assertEqual(parsed.scheme, "https")
         self.assertTrue(parsed.netloc)
 
+    def test_remote_descriptor_points_to_canonical_catalog(self):
+        # Issue #171: the canonical remote is served from tuna-os/docs at tunaos.org/flatpak.
+        self.assertEqual(self.repo["Url"], "oci+https://tunaos.org/flatpak")
+        self.assertEqual(self.repo["Homepage"], "https://tunaos.org")
+
 
 class AppStreamTests(unittest.TestCase):
     """Validate the AppStream metadata carried by the index.
