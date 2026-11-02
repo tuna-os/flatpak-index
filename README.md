@@ -218,19 +218,19 @@ jobs:
             echo "No index changes"
           else
             git commit -m "chore(flatpak): update <App> OCI index" \
-              -m "Published from ${{ github.repository }} (run ${{ github.run_id }})"
+              -m "Source: ${GITHUB_REPOSITORY} at ${GITHUB_SHA}" \
+              -m "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             git push origin main
           fi
       - name: Audit log the publication
         run: |
           echo "::group::flatpak publish audit"
-          echo "triggering-repo: ${{ github.repository }}"
-          echo "commit-sha: ${{ github.sha }}"
-          echo "workflow-run: ${{ github.run_id }} (${{ github.run_attempt }})"
-          echo "workflow: ${{ github.workflow }}"
-          echo "trigger: ${{ github.event_name }}"
+          printf 'source-repo: %s\nsource-sha: %s\n' "$GITHUB_REPOSITORY" "$GITHUB_SHA"
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          printf 'workflow-run: %s (attempt %s)\n' "$run_url" "$GITHUB_RUN_ATTEMPT"
           echo "::endgroup::"
-          echo "flatpak publish — repo=${{ github.repository }} sha=${{ github.sha }} run=${{ github.run_id }}" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Flatpak publish: repo=%s sha=%s run=%s\n' \
+            "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$run_url" >> "$GITHUB_STEP_SUMMARY"
 ```
 
 Also vendor [`scripts/update-index.py`](scripts/update-index.py) from this repo
@@ -244,65 +244,72 @@ from another app repository — see [App metadata](#app-metadata) for why.
 
 ### 4. Set repo secrets
 
-- **`FLATPAK_INDEX_TOKEN`**: a token with **Contents: read and write** access
-  only to `tuna-os/docs`. Prefer a **GitHub App installation token** or a
-  **deploy-account token** over a personal PAT (see [Token model](#token-model)
-  below). Do not reuse a general-purpose CLI or account token.
+- **`FLATPAK_INDEX_TOKEN`**: the existing fine-grained GitHub PAT with
+  **Contents: read and write** access only to `tuna-os/docs`. Do not reuse a
+  general-purpose CLI or account token. This documentation does not authorize
+  a new credential, permission grant, or change to live secrets.
 
 ```bash
 gh secret set FLATPAK_INDEX_TOKEN --repo tuna-os/<app>
 ```
 
-- **`FLATPAK_INDEX_TOKEN_READ`** (optional): a second token scoped to
-  **Contents: read only** on `tuna-os/docs`, used by the `check-metadata`
-  workflow and integration testing so those reads never need write access.
+Enter the token at the prompt. Never put its value in command arguments,
+repository URLs, documentation, logs, or step summaries.
 
-Enter tokens at the prompt. Do not place token values in command arguments,
-repository URLs, or documentation.
+#### Token model and publication records
 
-#### Token model
+Public catalog checks need no docs token. `check-metadata.yml` downloads the
+public index; it does not consume `FLATPAK_INDEX_TOKEN` or a second read token.
+Only the publication job needs the docs write credential.
 
-The token above gives every publishing repo **write** access to `tuna-os/docs`.
-That credential — or independent fine-grained tokens carrying the same
-capability — is shared across all publishing repos, and GitHub does not record
-which repo or workflow made each docs commit: only the `github-actions[bot]`
-identity and the token owner are visible. Two things close that gap:
+Prefer the canonical
+[`publish-flatpak.yml`](https://github.com/tuna-os/.github/blob/main/.github/workflows/publish-flatpak.yml)
+entry point and its `publish-flatpak-index` action for new publishers. Use a
+complete SHA for each cross-repository reference, after review. Do not add a
+second publisher to a workflow that already uses it. The example above shows
+publication records for the existing local-script pattern, not a second lane.
 
-1. **Prefer a GitHub App or deploy account.** A GitHub App scoped to
-   `tuna-os/docs` write access issues short-lived installation tokens instead of
-   a long-lived PAT, and each app repo installs the App under its own repo
-   identity, so commits trace back to the triggering repo. Rotate by
-   reinstalling the App or revoking its installation tokens.
-2. **Split read and write.** Give audit and testing workflows a read-only token
-   so nothing outside an actual publish ever holds write access.
+Record the source repository, source SHA, and workflow run URL in the workflow
+log and step summary. Include them in each index commit, as in the example.
+The shared action now uses an app-name commit subject; do not assume
+it already records these fields. A shared-action change belongs in its source
+repository, not in a new copy here. The identity of a bot or App does
+not identify the source repository. Never print credential values.
+
+Short-lived installation tokens from a GitHub App are a possible future
+migration, not the interface in use. A workflow mints a token when needed;
+the token expires. Routine rotation does not need App reinstallation.
+An App identity does not replace
+the source repository, SHA, and run URL in publication records.
 
 See [#139](https://github.com/tuna-os/flatpak-index/issues/139) for the full
-finding this addresses.
+audit result.
 
 #### Rotating the token
 
-Rotate `FLATPAK_INDEX_TOKEN` on a schedule and on trigger — the same credential
-(or same-capability tokens) lives in every publishing repo, so a single
-compromise reaches the whole index.
+Replace long-lived `FLATPAK_INDEX_TOKEN` credentials at least once per year
+and when a person with write access to a publisher repository leaves.
+Track which repositories share each credential in the private credential
+record, with the replacement date and next due date.
 
-- **Schedule:** at least once per year, and whenever staff with write access to
-  any publishing repo leaves a project.
-- **Trigger:** immediately if the token is suspected compromised — leaked in
-  logs, shown in a screenshot, or exposed by a repo breach — or if any single
-  publishing repo is compromised.
+For a planned replacement:
 
-Runbook:
+1. Issue a replacement fine-grained PAT with Contents read/write on
+   `tuna-os/docs` only. Do not expand its repository or permission scope.
+2. Coordinate the change across every publisher repository that uses the old
+   credential. Enter the replacement at the prompt with
+   `gh secret set FLATPAK_INDEX_TOKEN --repo tuna-os/<app>`.
+3. Confirm the next authorized publish can update the index, then check the
+   served index at <https://tunaos.org/flatpak/>. Do not trigger a production
+   publish only to test this documentation.
+4. Revoke the old credential after the coordinated change. Record completion
+   for each affected repository; do not leave an old credential active.
 
-1. Issue the replacement (a GitHub App installation, or a fine-grained PAT) with
-   the same `tuna-os/docs` Contents read+write scope.
-2. Set it in every publishing repo:
-   `gh secret set FLATPAK_INDEX_TOKEN --repo tuna-os/<app>` for each repo.
-3. Revoke the old token where it was issued.
-4. Confirm one publishing repo's publish still updates the index, then confirm
-   the served index at <https://tunaos.org/flatpak/> reflects it.
-
-Record the rotation date and the next due date where the team tracks
-credentials, so the schedule stays visible instead of implicit.
+If you suspect compromise, revoke the affected credential immediately,
+before replacement or publication checks. Pause affected publishers, inspect
+the workflow logs and index commits, then replace the credential in every
+affected repository with the same docs-only scope. Resume only after review.
+Do not wait for a planned replacement window.
 
 ### 5. Push to trigger the build
 
