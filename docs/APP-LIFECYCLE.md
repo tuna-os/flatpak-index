@@ -13,26 +13,17 @@ change.
   publisher workflow changes.
 - Treat `tuna-os/docs/static/flatpak/index/static` as production. Do not expect
   edits to this repository's `index/static` snapshot to change the live remote.
-- Keep `FLATPAK_INDEX_TOKEN` scoped to `tuna-os/docs` as documented in the
-  publish workflow. Never put token values in commands or documentation.
+- Follow the [publishing migration](PUBLISHING.md). New application publishers
+  need only package access to their own GHCR image, with no docs write token.
 
 ## Add an application
 
 1. Add the app's Flatpak manifest, metainfo, and icon in its application
    repository. Use the metadata and screenshot guides in this repository.
-2. Configure the application publisher to build an OCI layout, push the image
-   to GHCR, and update the production index. Prefer the shared
-   `tuna-os/.github/actions/update-flatpak-index` action. If using the vendored
-   script, pass:
-
-   ```sh
-   python3 .github/scripts/update-index.py \
-     --oci-dir <app>.oci \
-     --index-file index-repo/static/flatpak/index/static \
-     --repo-name tuna-os/<app> \
-     --require-appstream \
-     --tags latest
-   ```
+2. Configure the application publisher to build an OCI layout and push the
+   image to GHCR with its own repository token. Register its exact repository,
+   tag, architecture, and Flatpak ref in the reviewed docs-side source policy.
+   The docs-side refresh owns production index writes; see [Publishing](PUBLISHING.md).
 
 3. Review the application change and publisher output together. The index
    entry must carry both Flatpak labels and AppStream labels.
