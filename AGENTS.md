@@ -22,7 +22,7 @@ run: ./scripts/enrich-index.py served-index.json --check
 
 — so it validates production, not this branch. **A failure there can mean a
 deploy hasn't propagated, not that your change is wrong.** Read it as a
-monitoring signal that happens to live in CI.
+monitoring signal that happens to live in CI. A red run now opens a GitHub issue labelled `alert/check-metadata`. The issue links the failed run. A daily schedule reuses that issue instead of opening a second one.
 
 ## The label rule that has already bitten
 
