@@ -94,6 +94,50 @@ Retirement therefore needs a coordinated, reviewed production change.
 4. Run the served-index audit and verify the retired app is absent from the
    served index. Keep the retirement decision and date in the change record.
 
+## Respond to a bad publication
+
+A publication is bad when the served remote stops matching the registry or the
+documented catalog: a drift check fails, `enrich-index.py --check` reports
+missing or wrong metadata, or a user reports `Nothing matches` for an app that
+should be served. Roll back to the last known-good served index.
+
+Production is served from `tuna-os/docs` by the `tunaos-org` Cloudflare Worker,
+so a rollback is a change to that repository, not this one. This checkout's
+`index/static` is a reference snapshot and may itself be stale; do not treat it
+as the recovery source.
+
+1. Confirm the publication is bad against the registry, not only against the
+   docs:
+
+   ```sh
+   curl -sSfL -o served-index.json \
+     https://tunaos.org/flatpak/index/static
+   ./scripts/enrich-index.py served-index.json --check
+   ```
+
+   A non-zero result that names a digest missing labels or metadata the
+   registry no longer holds means the served index is wrong. A result that
+   flags only documentation is a drift check, not a rollback.
+
+2. Find the last good publication as the prior commit to
+   `tuna-os/docs/static/flatpak/index/static`.
+
+3. Restore it in `tuna-os/docs` — revert the bad commit, or re-publish the
+   previous good index. The Worker re-serves the static asset on push. Keep
+   `FLATPAK_INDEX_TOKEN` scoped to `tuna-os/docs`; never put its value in a
+   command, commit, or this document.
+
+4. Re-verify from the served URL (step 1) and confirm the catalog, digest,
+   architecture, and AppStream labels now match the registry.
+
+5. Record the incident in the change record: the bad commit SHA, what you
+   restored, the date, and the owner.
+
+The incident owner is the production-source owner named by the governance
+decision in ROADMAP.md. Until then, any `tuna-os/docs` maintainer holding
+`FLATPAK_INDEX_TOKEN` may perform the rollback. Run this procedure as a live
+exercise at least once: a rollback that has never been exercised is not one.
+
 ## Checks
 
 From this repository, run the test suite, which uses the standard library,
