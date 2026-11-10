@@ -311,28 +311,28 @@ enrich-index.py --check   audit: re-reads each image's labels from the registry,
 ```
 
 - **Publish** — `scripts/update-index.py` reads the `flatpak build-bundle --oci`
-  image and writes one entry into the index. It keeps the `org.flatpak.*` labels
-  (what Flatpak needs to resolve and install the ref) and the
-  `org.freedesktop.appstream.*` labels (what Bazaar, GNOME Software and Discover
-  render as the app page). Without AppStream metadata an app shows as a bare ID
+  image and writes one entry into the index. It keeps the `org.flatpak.*` labels,
+  which Flatpak needs to resolve and install the ref. It also keeps the
+  `org.freedesktop.appstream.*` labels, which Bazaar, GNOME Software and Discover
+  render as the app page. Without AppStream metadata an app shows as a bare ID
   with an "Unknown" licence and no screenshots. Run it with `--require-appstream`
-  to fail instead of warn when the image has no metainfo, so an incomplete build
+  to fail instead of warn when the image has no metainfo. Then an incomplete build
   never reaches the index in the first place.
-- **Serve** — the index is written to `tuna-os/docs` and published by the
-  `tunaos-org` Cloudflare Worker at `tunaos.org/flatpak/`. This repo's `index/static`
+- **Serve** — the index lives in `tuna-os/docs`, and the `tunaos-org` Cloudflare
+  Worker publishes it at `tunaos.org/flatpak/`. This repo's `index/static`
   is a historical snapshot, not what the remote serves.
 - **Validate** — `scripts/enrich-index.py --check` re-reads every published
   image's labels from the registry and reports any that are missing or incomplete.
   It runs daily against the live remote
-  ([`check-metadata.yml`](.github/workflows/check-metadata.yml)); a failure there
-  can also mean a deploy has not propagated, so read it as a monitoring signal.
+  ([`check-metadata.yml`](.github/workflows/check-metadata.yml)). A failure there
+  can also mean a deploy has not propagated, so read it as a monitor result.
 
-The two scripts apply the *same* label rule, but each implements it independently:
+The two scripts apply the *same* label rule, but each script has its own copy.
 `update-index.py` must stay a single vendored file and cannot import `oci.py`, so
 the rule lives in both. [`tests/test_label_policy.py`](tests/test_label_policy.py)
-pins the two copies to each other, and [`tests/test_publish_enrich_contract.py`](tests/test_publish_enrich_contract.py)
-runs a published entry through the auditor end to end, so a divergence or an
-incomplete entry fails in CI rather than surfacing as a bare app.
+pins the two copies to each other. [`tests/test_publish_enrich_contract.py`](tests/test_publish_enrich_contract.py)
+runs a published entry through the auditor end to end. So a divergence or an
+incomplete entry fails in CI and does not appear as a bare app.
 
 ## Architecture
 
