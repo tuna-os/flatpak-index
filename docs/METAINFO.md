@@ -38,7 +38,8 @@ is blank — and the failure is silent at every step.
 Check an app end to end with:
 
 ```bash
-./scripts/enrich-index.py index/static --check
+curl -sSfL -o served-index.json https://tunaos.org/flatpak/index/static
+./scripts/enrich-index.py served-index.json --check
 ```
 
 It reports which published images carry no AppStream metadata.

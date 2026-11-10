@@ -59,7 +59,7 @@ Never post account credentials or API keys in issues or pull requests.
 | Installer (COSMIC) | `flatpak install tuna-os org.tunaos.InstallerCosmic` |
 | Installer (XFCE) | `flatpak install tuna-os org.tunaos.InstallerXfce` |
 
-> The installer frontends drive the [fisherman](https://github.com/tuna-os/fisherman)
+> The installer frontends drive the [fisherman](https://github.com/projectbluefin/fisherman)
 > bootc backend. The matching TunaOS live ISOs include these frontends
 > (see `build_scripts/installer-frontend.sh` in [tuna-os/tunaOS](https://github.com/tuna-os/tunaOS)).
 
@@ -315,6 +315,4 @@ ghcr.io/tuna-os/<app>         → OCI images with flatpak metadata
 
 The `index/static` file is a JSON array with OCI image references. Each entry maps an app name to its manifest digest and flatpak metadata labels. Flatpak downloads this index, finds the right image by app ID and architecture, then pulls it from the GHCR registry.
 
-> **Note:** The authoritative index is `static/flatpak/index/static` in the [tuna-os/docs](https://github.com/tuna-os/docs) repo, served at <https://tunaos.org/flatpak/>. The copy of `index/static` in this repo is a **historical snapshot**, not what the remote serves. Treat it as reference only; the table (and tunaos.org) reflect the live remote.
->
-> **This repo's [GitHub Pages site](https://tuna-os.github.io/flatpak-index/) and root `tuna-os.flatpakrepo` file are a non-authoritative snapshot.** Do not use `flatpak remote-add` on that URL or file. Always use the remote URL <https://tunaos.org/flatpak/tuna-os.flatpakrepo> from the [top of this README](#available-apps).
+> **Note:** The authoritative index is `static/flatpak/index/static` in the [tuna-os/docs](https://github.com/tuna-os/docs) repo, served at <https://tunaos.org/flatpak/>. Per issues #171 and #173, `tuna-os/docs` is the canonical catalog owner. This repository no longer keeps a historical snapshot or a GitHub Pages deployment. The `tuna-os.flatpakrepo` file in this repository points to the canonical remote at <https://tunaos.org/flatpak>.

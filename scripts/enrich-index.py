@@ -11,8 +11,8 @@ This only ever re-reads the digests already named in the index, so the set of
 published images -- and every digest in it -- is unchanged. Only the Labels
 maps grow.
 
-    ./scripts/enrich-index.py index/static
-    ./scripts/enrich-index.py index/static --check     # CI: report, change nothing
+    ./scripts/enrich-index.py served-index.json
+    ./scripts/enrich-index.py served-index.json --check     # CI: report, change nothing
 """
 
 import argparse
