@@ -17,10 +17,10 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.15"
       - name: Install ruff
@@ -30,10 +30,10 @@ jobs:
   unittest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.15"
       - run: python3 -m unittest discover -s tests -v
@@ -41,7 +41,7 @@ jobs:
   catalog:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Fetch production declaration
@@ -63,14 +63,14 @@ jobs:
     name: capture action (apt)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Install the test client
         # xclock lives in x11-apps on Debian; the action installs x11-utils,
         # which is a different package.
         run: sudo apt-get update -qq && sudo apt-get install -y -qq x11-apps
-      - uses: ./.github/actions/capture-screenshots
+      - uses: $/.github/actions/capture-screenshots
         with:
           command: xclock -analog
           name: self-test
@@ -89,12 +89,12 @@ jobs:
     steps:
       - name: Install git first
         run: dnf -y install git
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Install the test client
         run: dnf -y install xclock
-      - uses: ./.github/actions/capture-screenshots
+      - uses: $/.github/actions/capture-screenshots
         with:
           command: xclock -analog
           name: self-test
