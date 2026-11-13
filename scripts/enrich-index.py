@@ -31,6 +31,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from oci import APPSTREAM_LABELS, Registry, RegistryError, filter_labels  # noqa: E402
 
 APPDATA_LABEL = "org.freedesktop.appstream.appdata"
+# The registry the published images live in. An index names its own registry
+# and Flatpak pulls every image from the host it names, so an index that names
+# another host serves images nobody published here. Reading labels from that
+# host would only compare the index with itself, and would hand it the token.
+EXPECTED_REGISTRY = "https://ghcr.io"
 # Producer: tuna-os/docs scripts/prepare-flatpak-icons.mjs, run by package.json prebuild.
 # https://github.com/tuna-os/docs/blob/1cdc86a3f03e406a95d6886b207dc09a11ae7ad2/scripts/prepare-flatpak-icons.mjs#L45-L53
 # Keep this exact-format exception narrow so other AppStream drift is still reported.
@@ -194,10 +199,23 @@ def main():
         default=os.environ.get("REGISTRY_TOKEN"),
         help="Bearer token for private packages (default: $REGISTRY_TOKEN)",
     )
+    parser.add_argument(
+        "--registry",
+        default=EXPECTED_REGISTRY,
+        help="Registry the index must name (default: %(default)s)",
+    )
     args = parser.parse_args()
 
     index_data = json.loads(args.index_file.read_text())
-    registry = Registry(index_data["Registry"], token=args.token)
+    named_registry = index_data.get("Registry")
+    if named_registry != args.registry:
+        print(
+            f"  ! index names registry {named_registry!r}, expected "
+            f"{args.registry!r}; not reading labels from it",
+            file=sys.stderr,
+        )
+        return 1
+    registry = Registry(named_registry, token=args.token)
 
     print(f"Reading labels from {index_data['Registry']}")
     registry_errors = []
