@@ -217,9 +217,20 @@ jobs:
           if git diff --cached --quiet; then
             echo "No index changes"
           else
-            git commit -m "chore(flatpak): update <App> OCI index"
+            git commit -m "chore(flatpak): update <App> OCI index" \
+              -m "Source: ${GITHUB_REPOSITORY} at ${GITHUB_SHA}" \
+              -m "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             git push origin main
           fi
+      - name: Audit log the publication
+        run: |
+          echo "::group::flatpak publish audit"
+          printf 'source-repo: %s\nsource-sha: %s\n' "$GITHUB_REPOSITORY" "$GITHUB_SHA"
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          printf 'workflow-run: %s (attempt %s)\n' "$run_url" "$GITHUB_RUN_ATTEMPT"
+          echo "::endgroup::"
+          printf 'Flatpak publish: repo=%s sha=%s run=%s\n' \
+            "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$run_url" >> "$GITHUB_STEP_SUMMARY"
 ```
 
 Also vendor [`scripts/update-index.py`](scripts/update-index.py) from this repo
@@ -233,16 +244,72 @@ from another app repository — see [App metadata](#app-metadata) for why.
 
 ### 4. Set repo secrets
 
-- **`FLATPAK_INDEX_TOKEN`**: A fine-grained GitHub PAT with **Contents: read and
-  write** access only to `tuna-os/docs`. Do not reuse a general-purpose CLI or
-  account token.
+- **`FLATPAK_INDEX_TOKEN`**: the existing fine-grained GitHub PAT with
+  **Contents: read and write** access only to `tuna-os/docs`. Do not reuse a
+  general-purpose CLI or account token. This documentation does not authorize
+  a new credential, permission grant, or change to live secrets.
 
 ```bash
 gh secret set FLATPAK_INDEX_TOKEN --repo tuna-os/<app>
 ```
 
-Enter the fine-grained token at the prompt. Do not place token values in command
-arguments, repository URLs, or documentation.
+Enter the token at the prompt. Never put its value in command arguments,
+repository URLs, documentation, logs, or step summaries.
+
+#### Token model and publication records
+
+Public catalog checks need no docs token. `check-metadata.yml` downloads the
+public index; it does not consume `FLATPAK_INDEX_TOKEN` or a second read token.
+Only the publication job needs the docs write credential.
+
+Prefer the canonical
+[`publish-flatpak.yml`](https://github.com/tuna-os/.github/blob/main/.github/workflows/publish-flatpak.yml)
+entry point and its `publish-flatpak-index` action for new publishers. Use a
+complete SHA for each cross-repository reference, after review. Do not add a
+second publisher to a workflow that already uses it. The example above shows
+publication records for the existing local-script pattern, not a second lane.
+
+Record the source repository, source SHA, and workflow run URL in the workflow
+log and step summary. Include them in each index commit, as in the example.
+The shared action now uses an app-name commit subject; do not assume
+it already records these fields. A shared-action change belongs in its source
+repository, not in a new copy here. The identity of a bot or App does
+not identify the source repository. Never print credential values.
+
+Short-lived installation tokens from a GitHub App are a possible future
+migration, not the interface in use. A workflow mints a token when needed;
+the token expires. Routine rotation does not need App reinstallation.
+An App identity does not replace
+the source repository, SHA, and run URL in publication records.
+
+See [#139](https://github.com/tuna-os/flatpak-index/issues/139) for the full
+audit result.
+
+#### Rotating the token
+
+Replace long-lived `FLATPAK_INDEX_TOKEN` credentials at least once per year
+and when a person with write access to a publisher repository leaves.
+Track which repositories share each credential in the private credential
+record, with the replacement date and next due date.
+
+For a planned replacement:
+
+1. Issue a replacement fine-grained PAT with Contents read/write on
+   `tuna-os/docs` only. Do not expand its repository or permission scope.
+2. Coordinate the change across every publisher repository that uses the old
+   credential. Enter the replacement at the prompt with
+   `gh secret set FLATPAK_INDEX_TOKEN --repo tuna-os/<app>`.
+3. Confirm the next authorized publish can update the index, then check the
+   served index at <https://tunaos.org/flatpak/>. Do not trigger a production
+   publish only to test this documentation.
+4. Revoke the old credential after the coordinated change. Record completion
+   for each affected repository; do not leave an old credential active.
+
+If you suspect compromise, revoke the affected credential immediately,
+before replacement or publication checks. Pause affected publishers, inspect
+the workflow logs and index commits, then replace the credential in every
+affected repository with the same docs-only scope. Resume only after review.
+Do not wait for a planned replacement window.
 
 ### 5. Push to trigger the build
 
