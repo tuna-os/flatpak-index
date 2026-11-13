@@ -449,6 +449,68 @@ class EnrichIndexTests(unittest.TestCase):
 
 
 
+    def test_main_refuses_index_that_names_another_registry(self):
+        # Flatpak pulls from the registry the index names, and the token is
+        # sent to that host. A run on such an index must stop before a
+        # registry client exists, in both modes, and leave the file alone.
+        index = {"Registry": "https://registry.example", "Results": []}
+        with tempfile.NamedTemporaryFile("w+", delete=False) as tmp:
+            json.dump(index, tmp)
+            tmp_path = Path(tmp.name)
+        before = tmp_path.read_text()
+
+        try:
+            for mode in (["--check"], []):
+                with self.subTest(mode=mode):
+                    argv = ["enrich-index.py", str(tmp_path), "--token", "t", *mode]
+                    with (
+                        patch.object(enrich_index, "Registry") as registry_class,
+                        patch("sys.argv", argv),
+                    ):
+                        res = enrich_index.main()
+                    self.assertEqual(res, 1)
+                    registry_class.assert_not_called()
+                    self.assertEqual(tmp_path.read_text(), before)
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+    def test_main_refuses_index_without_a_registry(self):
+        with tempfile.NamedTemporaryFile("w+", delete=False) as tmp:
+            json.dump({"Results": []}, tmp)
+            tmp_path = Path(tmp.name)
+
+        try:
+            with (
+                patch.object(enrich_index, "Registry") as registry_class,
+                patch("sys.argv", ["enrich-index.py", str(tmp_path), "--check"]),
+            ):
+                res = enrich_index.main()
+            self.assertEqual(res, 1)
+            registry_class.assert_not_called()
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+    def test_main_registry_option_names_the_expected_registry(self):
+        index = {"Registry": "https://registry.example", "Results": []}
+        with tempfile.NamedTemporaryFile("w+", delete=False) as tmp:
+            json.dump(index, tmp)
+            tmp_path = Path(tmp.name)
+
+        try:
+            argv = [
+                "enrich-index.py", str(tmp_path), "--check", "--token", "t",
+                "--registry", "https://registry.example",
+            ]
+            with (
+                patch.object(enrich_index, "Registry") as registry_class,
+                patch("sys.argv", argv),
+            ):
+                res = enrich_index.main()
+            self.assertEqual(res, 0)
+            registry_class.assert_called_once_with("https://registry.example", token="t")
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
     def test_main_skips_write_on_registry_error(self):
         # A registry read failure leaves reconciliation incomplete; main() must
         # refuse to write and report failure, leaving the index byte-for-byte

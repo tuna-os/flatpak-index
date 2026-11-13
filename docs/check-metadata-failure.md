@@ -67,6 +67,17 @@ the remote, or the README table differs from the declaration. Update
 this repository. See
 [Keep the advertised catalog in sync](APP-LIFECYCLE.md#keep-the-advertised-catalog-in-sync).
 
+### Wrong registry
+
+Symptom: `enrich-index.py` prints `index names registry <value>, expected
+'https://ghcr.io'` and stops. It reads no labels.
+
+The served index names a registry that is not GHCR. Flatpak pulls each image
+from the registry that the index names. This is not a deployment lag. Do not
+wait. Find the commit in `tuna-os/docs` that changed the `Registry` field.
+Undo that change. If no maintainer made that change, replace the index write
+token.
+
 ### Stale served index
 
 Symptom: the run prints `image(s) are missing labels present in the registry`.
@@ -112,6 +123,8 @@ re-run the served-index audit.
 3. Route the fix:
    - Catalog mismatch: update the declaration in `tuna-os/docs` or the README
      table here. Owner: the person who adds, renames, or retires the app.
+   - Wrong registry: undo the `Registry` change in `tuna-os/docs`. Owner: the
+     index operator.
    - Stale served index: redeploy `tuna-os/docs`. Owner: the deployer.
    - Missing metadata or malformed catalogue: fix the application repository.
      Owner: the application maintainer.
