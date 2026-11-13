@@ -15,6 +15,9 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -35,3 +38,27 @@ jobs:
         run: python3 -m unittest tests/test_index.py -v
         env:
           FLATPAK_INDEX_FILE: served-index.json
+
+      - name: Open an issue when the check fails
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="check-metadata failing"
+          existing=$(gh issue list --state open --search "\"$title\" in:title" --json number,title \
+            --jq "[.[] | select(.title == \"$title\")] | length")
+          if [ "$existing" != "0" ]; then
+            echo "An open '$title' issue already exists; not filing another."
+            exit 0
+          fi
+          cat > issue-body.md <<EOF
+          The scheduled check-metadata run failed: $RUN_URL
+
+          This workflow validates the *served* index at https://tunaos.org/flatpak/, not this
+          branch, so a failure can mean a deploy has not propagated. See
+          docs/check-metadata-failure.md to read the run and route the failure.
+          EOF
+          sed -i 's/^          //' issue-body.md
+          gh issue create --title "$title" --body-file issue-body.md
