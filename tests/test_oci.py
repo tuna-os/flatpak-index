@@ -4,11 +4,16 @@ All HTTP and subprocess interactions are mocked to enable fast, offline,
 deterministic testing.
 """
 
+import hashlib
 import json
 import unittest
 from unittest.mock import MagicMock, patch
 
 from scripts import oci
+
+
+def digest(body):
+    return "sha256:" + hashlib.sha256(body).hexdigest()
 
 
 class LabelFilterTests(unittest.TestCase):
@@ -104,8 +109,54 @@ class RegistryTests(unittest.TestCase):
         manifest = reg.manifest("tuna-os/letters", "latest")
         self.assertEqual(manifest, {"schemaVersion": 2})
 
-        blob = reg.blob("tuna-os/letters", "sha256:abc")
-        self.assertEqual(blob, {"schemaVersion": 2})
+        body = mock_curl.return_value
+        self.assertEqual(reg.manifest("tuna-os/letters", digest(body)), manifest)
+        self.assertEqual(reg.blob("tuna-os/letters", digest(body)), manifest)
+
+    @patch.object(oci, "_curl")
+    def test_checks_raw_manifest_and_config_bytes_before_parsing(self, mock_curl):
+        config = b'{"config":{"Labels":{"org.flatpak.ref":"app/example/x86_64/stable"}}}'
+        manifest = json.dumps({"config": {"digest": digest(config)}}).encode()
+        reg = oci.Registry("https://ghcr.io", token="tok")
+        mock_curl.side_effect = [manifest, config]
+        self.assertEqual(
+            reg.image_labels("tuna-os/example", digest(manifest)),
+            {"org.flatpak.ref": "app/example/x86_64/stable"},
+        )
+
+        # The same parsed JSON with different whitespace must not pass a digest check.
+        mock_curl.side_effect = [manifest + b" "]
+        with self.assertRaisesRegex(oci.RegistryError, "Digest mismatch"):
+            reg.image_labels("tuna-os/example", digest(manifest))
+        self.assertEqual(mock_curl.call_count, 3)  # config was never fetched
+
+        mock_curl.side_effect = [manifest, config + b" "]
+        with self.assertRaisesRegex(oci.RegistryError, "Digest mismatch"):
+            reg.image_labels("tuna-os/example", digest(manifest))
+
+    @patch.object(oci, "_curl")
+    def test_rejects_bad_or_unsupported_blob_digests(self, mock_curl):
+        reg = oci.Registry("https://ghcr.io", token="tok")
+        for bad in ("sha256:abc", "sha512:" + "a" * 128, "sha256:" + "A" * 64, None):
+            with self.subTest(digest=bad), self.assertRaises(oci.RegistryError):
+                reg.blob("tuna-os/example", bad)
+        mock_curl.assert_not_called()
+
+    @patch.object(oci, "_curl")
+    def test_rejects_malformed_or_unsupported_manifest_digests(self, mock_curl):
+        reg = oci.Registry("https://ghcr.io", token="tok")
+        for bad in ("sha256:abc", "sha512:" + "a" * 128):
+            with self.subTest(digest=bad), self.assertRaises(oci.RegistryError):
+                reg.manifest("tuna-os/example", bad)
+        mock_curl.assert_not_called()
+
+    @patch.object(oci, "_curl", return_value=b"not json")
+    def test_digest_failure_precedes_json_parsing(self, mock_curl):
+        reg = oci.Registry("https://ghcr.io", token="tok")
+        with self.assertRaisesRegex(oci.RegistryError, "Digest mismatch"):
+            reg.manifest("tuna-os/example", "sha256:" + "0" * 64)
+        with self.assertRaisesRegex(oci.RegistryError, "Digest mismatch"):
+            reg.blob("tuna-os/example", "sha256:" + "0" * 64)
 
     @patch.object(oci.Registry, "manifest")
     @patch.object(oci.Registry, "blob")
