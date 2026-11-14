@@ -74,9 +74,10 @@ Symptom: `enrich-index.py` prints `index names registry <value>, expected
 
 The served index names a registry that is not GHCR. Flatpak pulls each image
 from the registry that the index names. This is not a deployment lag. Do not
-wait. Find the commit in `tuna-os/docs` that changed the `Registry` field.
-Undo that change. If no maintainer made that change, replace the index write
-token.
+wait.
+
+Find the commit in `tuna-os/docs` that changed the `Registry` field. Undo that
+change. If no maintainer made that change, replace the index write token.
 
 ### Stale served index
 
