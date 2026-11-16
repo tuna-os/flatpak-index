@@ -9,4 +9,9 @@ select = [
     "UP",  # pyupgrade
     "B",   # flake8-bugbear
     "SIM", # flake8-simplify
+    # Function length, ratcheted (#245). Ruff counts statements, not lines;
+    # its default of 50 is roughly 100-150 lines. An existing offender is
+    # marked `noqa: PLR0915` on its `def` line, and the mark is deleted when
+    # the function is split. A new long function fails this check.
+    "PLR0915",
 ]

@@ -471,7 +471,7 @@ def parse_arguments(argv: list[str]) -> dict[str, Any]:
     }
 
 
-def execute_capture(req: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+def execute_capture(req: dict[str, Any]) -> tuple[int, dict[str, Any]]:  # noqa: PLR0915 (#245)
     """Execute the full screenshot capture lifecycle and return exit code and receipt."""
     start_monotonic = time.monotonic()
     start_utc = datetime.datetime.now(datetime.UTC).isoformat()
