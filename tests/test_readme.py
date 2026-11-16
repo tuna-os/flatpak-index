@@ -62,5 +62,41 @@ class AvailableAppsTests(unittest.TestCase):
         self.assertNotIn("com.vicinae.Vicinae", [app_id for _, app_id in self.rows])
 
 
+def publish_template():
+    text = (ROOT / "README.md").read_text()
+    after = text.split("Create `.github/workflows/publish-flatpak.yml`:", 1)[1]
+    return after.split("```yaml\n", 1)[1].split("\n```", 1)[0]
+
+
+class PublishTemplateTests(unittest.TestCase):
+    """New app repositories copy this workflow, and zizmor does not read Markdown.
+
+    The build job runs the app's whole build in a privileged container, so it
+    must not hold a token that can push to the registry.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.template = publish_template()
+        cls.build, cls.publish = cls.template.split("\n  publish:\n", 1)
+
+    def test_only_the_publish_job_can_write_packages(self):
+        self.assertNotIn("write", self.build)
+        self.assertEqual(self.publish.count("packages: write"), 1)
+
+    def test_checkouts_keep_no_token_unless_they_push(self):
+        steps = re.split(r"\n      - ", self.template)
+        checkouts = [step for step in steps if "uses: actions/checkout@" in step]
+        self.assertTrue(checkouts)
+        for step in checkouts:
+            if "token:" not in step:
+                self.assertIn("persist-credentials: false", step)
+
+    def test_run_steps_expand_no_expressions(self):
+        for step in re.split(r"\n      - ", self.template):
+            if "run: |" in step:
+                self.assertNotIn("${{", step.split("run: |", 1)[1])
+
+
 if __name__ == "__main__":
     unittest.main()

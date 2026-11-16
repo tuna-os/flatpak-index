@@ -152,7 +152,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   build-oci:
@@ -163,6 +162,8 @@ jobs:
       options: --privileged
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Build Flatpak
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
@@ -184,8 +185,13 @@ jobs:
     name: Publish to GHCR
     needs: build-oci
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           name: <app>-oci
@@ -194,7 +200,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "$GITHUB_TOKEN" | skopeo login ghcr.io -u "${{ github.actor }}" --password-stdin
+          echo "$GITHUB_TOKEN" | skopeo login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           skopeo copy oci:<app>.oci docker://ghcr.io/tuna-os/<app>:latest
       - name: Check out central index
         uses: actions/checkout@v4
