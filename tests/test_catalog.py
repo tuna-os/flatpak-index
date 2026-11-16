@@ -1,9 +1,15 @@
 """Production declaration parity and per-app architecture coverage."""
 
+import contextlib
 import copy
+import io
+import json
+import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
 
-from scripts.catalog import check_coverage, check_readme
+from scripts.catalog import check_coverage, check_readme, main
 
 
 class CatalogTests(unittest.TestCase):
@@ -46,3 +52,43 @@ class CatalogTests(unittest.TestCase):
                         readme + "\n| Extra | `flatpak install tuna-os org.example.Extra` |",
                         readme + "\n| Again | `flatpak install tuna-os org.example.One` |"]:
             self.assertTrue(check_readme(self.declaration, changed))
+
+
+class CatalogCommandTests(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.declaration = self.tmp / "expected-apps.json"
+        self.declaration.write_text(json.dumps({"apps": [
+            {"name": "tuna-os/one", "ids": ["org.example.One"], "archs": ["amd64"]}]}))
+
+    def run_main(self, *args):
+        out = io.StringIO()
+        with (mock.patch("sys.argv", ["catalog.py", str(self.declaration), *args]),
+              contextlib.redirect_stdout(out)):
+            return main(), out.getvalue()
+
+    def test_requires_a_readme_or_an_index(self):
+        with (self.assertRaises(SystemExit) as caught,
+              contextlib.redirect_stderr(io.StringIO())):
+            self.run_main()
+        self.assertEqual(caught.exception.code, 2)
+
+    def test_matching_readme_and_index_pass(self):
+        readme = self.tmp / "README.md"
+        readme.write_text("## Available apps\n| One | `flatpak install tuna-os org.example.One` |")
+        index = self.tmp / "index.json"
+        index.write_text(json.dumps({"Results": [{"Name": "tuna-os/one", "Images": [
+            {"Architecture": "amd64",
+             "Labels": {"org.flatpak.ref": "app/org.example.One/x86_64/stable"}}]}]}))
+        failed, output = self.run_main("--readme", str(readme), "--index", str(index))
+        self.assertFalse(failed)
+        self.assertEqual(output, "")
+
+    def test_a_missing_app_fails_and_is_reported(self):
+        index = self.tmp / "index.json"
+        index.write_text(json.dumps({"Results": []}))
+        failed, output = self.run_main("--index", str(index))
+        self.assertTrue(failed)
+        self.assertIn("tuna-os/one", output)

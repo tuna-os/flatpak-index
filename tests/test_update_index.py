@@ -17,6 +17,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -248,6 +249,77 @@ class PublisherTests(unittest.TestCase):
         with self.assertRaises(ValueError) as caught:
             update_index.read_oci_layout(oci_dir)
         self.assertIn("No manifests listed", str(caught.exception))
+
+
+class MainTests(unittest.TestCase):
+    """The command-line entry point that application repos' publish workflows run."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+        self.oci_dir = self.tmp / "oci"
+        self.index_file = self.tmp / "index" / "static"
+
+    def run_main(self, *extra):
+        argv = [
+            "update-index.py",
+            "--oci-dir", str(self.oci_dir),
+            "--index-file", str(self.index_file),
+            "--repo-name", "tuna-os/example",
+            *extra,
+        ]
+        out = io.StringIO()
+        with (
+            mock.patch.object(sys, "argv", argv),
+            contextlib.redirect_stdout(out),
+            contextlib.redirect_stderr(io.StringIO()),
+        ):
+            update_index.main()
+        return out.getvalue()
+
+    def test_creates_the_index_and_its_parent_directory(self):
+        write_oci_layout(self.oci_dir, {**FLATPAK_LABELS, **APPSTREAM_LABELS})
+        output = self.run_main()
+
+        index = json.loads(self.index_file.read_text())
+        self.assertEqual(index["Registry"], "https://ghcr.io")
+        self.assertEqual([r["Name"] for r in index["Results"]], ["tuna-os/example"])
+        self.assertEqual(index["Results"][0]["Images"][0]["Tags"], ["latest"])
+        self.assertIn("appstream=yes", output)
+
+    def test_registry_and_tags_options_reach_the_index(self):
+        write_oci_layout(self.oci_dir, {**FLATPAK_LABELS, **APPSTREAM_LABELS})
+        self.run_main("--registry", "registry.example", "--tags", "stable", "beta")
+
+        index = json.loads(self.index_file.read_text())
+        self.assertEqual(index["Registry"], "https://registry.example")
+        self.assertEqual(index["Results"][0]["Images"][0]["Tags"], ["stable", "beta"])
+
+    def test_merges_into_an_existing_index_and_keeps_other_apps(self):
+        self.index_file.parent.mkdir(parents=True)
+        other = {"Name": "tuna-os/other", "Images": []}
+        self.index_file.write_text(
+            json.dumps({"Registry": "https://ghcr.io", "Results": [other]})
+        )
+        write_oci_layout(self.oci_dir, FLATPAK_LABELS)
+        output = self.run_main()
+
+        index = json.loads(self.index_file.read_text())
+        self.assertEqual(
+            [r["Name"] for r in index["Results"]], ["tuna-os/example", "tuna-os/other"]
+        )
+        self.assertIn("appstream=no", output)
+
+    def test_require_appstream_failure_leaves_the_index_untouched(self):
+        self.index_file.parent.mkdir(parents=True)
+        before = json.dumps({"Registry": "https://ghcr.io", "Results": []})
+        self.index_file.write_text(before)
+        write_oci_layout(self.oci_dir, FLATPAK_LABELS)
+
+        with self.assertRaises(ValueError):
+            self.run_main("--require-appstream")
+        self.assertEqual(self.index_file.read_text(), before)
 
 
 if __name__ == "__main__":
