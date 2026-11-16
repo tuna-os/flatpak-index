@@ -71,14 +71,23 @@ def redact_sensitive(text: str | None) -> str | None:
     """Mask tokens, passwords, and secrets in strings."""
     if not text:
         return text
+    # The receipt is a file that callers commit, so the CI log masker never
+    # sees it. ghs_ is the Actions token of the job that runs the capture.
     result = re.sub(
-        r"(?i)\b(?:ghp_[a-zA-Z0-9]{36,}|github_pat_[a-zA-Z0-9_]{60,})",
+        r"(?i)\b(?:gh[pousr]_[a-zA-Z0-9_]{36,}|github_pat_[a-zA-Z0-9_]{60,})",
         "***REDACTED***",
         text,
     )
     for pattern in (
         r"(?i)(--?(?:token|password|auth|secret|key|api[-_]?key)[=\s]+)(\S+)",
         r"(?i)(bearer\s+)([a-zA-Z0-9._~+/-]+=*)",
+        # Authorization: Basic <base64>, Authorization: token <value>
+        r"(?i)(authorization:\s*[a-z]+\s+)(\S+)",
+        # scheme://user:password@host
+        r"(?i)(\b[a-z][a-z0-9+.-]*://[^\s/:@]*:)([^\s/]+)(?=@)",
+        # API_TOKEN=value, DB_PASSWORD="two words"
+        r"(?i)(\b[a-z0-9_]*(?:token|secret|password|passwd|key)[a-z0-9_]*=)"
+        r"""("[^"]*"|'[^']*'|\S+)""",
     ):
         result = re.sub(pattern, r"\1***REDACTED***", result)
     return result

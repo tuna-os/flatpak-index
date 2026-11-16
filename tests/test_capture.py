@@ -231,6 +231,38 @@ class RedactionAndProvenanceTests(unittest.TestCase):
                     "before ***REDACTED*** after",
                 )
 
+    def test_redacts_every_github_token_prefix(self):
+        # ghs_ is the Actions token of the job that commits the receipt.
+        for prefix in ("ghp_", "gho_", "ghu_", "ghs_", "ghr_"):
+            with self.subTest(prefix=prefix):
+                self.assertEqual(
+                    capture.redact_sensitive(f"before {prefix}{'a' * 36} after"),
+                    "before ***REDACTED*** after",
+                )
+
+    def test_redacts_url_passwords_env_assignments_and_auth_headers(self):
+        cases = {
+            "curl -fsS https://bot:hunter2@127.0.0.1:8080/health":
+                "curl -fsS https://bot:***REDACTED***@127.0.0.1:8080/health",
+            "git clone https://x-access-token:p@ss@github.com/o/r":
+                "git clone https://x-access-token:***REDACTED***@github.com/o/r",
+            "env API_TOKEN=hunter2 myapp": "env API_TOKEN=***REDACTED*** myapp",
+            'DB_PASSWORD="two words" myapp': "DB_PASSWORD=***REDACTED*** myapp",
+            "AUTHORIZATION: basic aHVudGVyMg==": "AUTHORIZATION: basic ***REDACTED***",
+        }
+        for text, expected in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(capture.redact_sensitive(text), expected)
+
+    def test_redaction_keeps_ordinary_diagnostics(self):
+        for text in (
+            "curl -fsS http://127.0.0.1:8080/health",
+            "DISPLAY=:99 GDK_BACKEND=x11 myapp --geometry=1000x700",
+            "mail user@example.org about https://example.org/a:b@c",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(capture.redact_sensitive(text), text)
+
     def test_binary_provenance_verified_for_existing_executable(self):
         prov = capture.resolve_binary_provenance(["python3"])
         self.assertEqual(prov["digest_status"], "verified")
