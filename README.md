@@ -231,11 +231,14 @@ jobs:
 Also vendor [`scripts/update-index.py`](scripts/update-index.py) from this repo
 to `.github/scripts/update-index.py`, or use the `update-flatpak-index` action
 from `tuna-os/.github` (`tuna-os/.github/actions/update-flatpak-index`). **Prefer
-the composite action.** The weekly drift check in `tuna-os/.github` treats the
-action as canonical, not this file. In the past, they drifted apart.
-See [AGENTS.md](AGENTS.md#three-copies-of-one-script) for the history, and for
-why that check does not look at this file. Do not copy an older version
-from another app repository — see [App metadata](#app-metadata) for why.
+the composite action.** Then your repository has no copy to update. Do not copy
+an older version from another app repository — see [App metadata](#app-metadata)
+for why.
+
+This file is the canonical copy, and the action is a byte-identical copy of it.
+Each week, the drift check in `tuna-os/.github` compares the action and each
+vendored copy with this file. It fails on any difference. See
+[AGENTS.md](AGENTS.md#three-copies-of-one-script) for the history.
 
 ### 4. Set repo secrets
 
