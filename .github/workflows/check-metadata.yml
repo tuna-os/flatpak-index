@@ -3,6 +3,13 @@ name: Check remote metadata
 # Verifies that every app published to the live remote still carries the
 # AppStream metadata software centres need, and validates the live served catalog
 # against repository descriptor and OCI index specifications.
+#
+# This checks the *served* index, not this repository's historical snapshot, so
+# it runs on a schedule rather than on push. A failure means the served index is
+# wrong — a corrupt or not-yet-propagated deploy in tuna-os/docs, AppStream labels
+# dropped from a published app, or an unreachable registry — not that this branch
+# is bad. It auto-files a GitHub issue on failure so a broken index is never
+# silent; the triage runbook is in docs/check-metadata-failure.md.
 
 on:
   schedule:
@@ -11,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   check:
@@ -39,26 +47,52 @@ jobs:
         env:
           FLATPAK_INDEX_FILE: served-index.json
 
-      - name: Open an issue when the check fails
+      - name: File an issue when the served index fails validation
         if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          title="check-metadata failing"
-          existing=$(gh issue list --state open --search "\"$title\" in:title" --json number,title \
-            --jq "[.[] | select(.title == \"$title\")] | length")
-          if [ "$existing" != "0" ]; then
-            echo "An open '$title' issue already exists; not filing another."
-            exit 0
-          fi
-          cat > issue-body.md <<EOF
-          The scheduled check-metadata run failed: $RUN_URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+            const runUrl = `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
 
-          This workflow validates the *served* index at https://tunaos.org/flatpak/, not this
-          branch, so a failure can mean a deploy has not propagated. See
-          docs/check-metadata-failure.md to read the run and route the failure.
-          EOF
-          sed -i 's/^          //' issue-body.md
-          gh issue create --title "$title" --body-file issue-body.md
+            // Stable title so repeated daily failures comment on one issue
+            // instead of opening a new one every run.
+            const title = 'check-metadata: served index failed AppStream metadata validation';
+            const label = 'check-metadata-failure';
+
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', labels: label, per_page: 100,
+            });
+            const existing = open.find(i => i.title === title);
+
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: existing.number,
+                body: [
+                  'Re-failed on the latest scheduled run. See [this run](' + runUrl + ').',
+                  '',
+                  'If the index is now healthy, close this issue to reset the alert.',
+                ].join('\n'),
+              });
+            } else {
+              await github.rest.issues.create({
+                owner, repo, title,
+                labels: [label],
+                body: [
+                  '## check-metadata failed',
+                  '',
+                  'The served Flatpak index at `https://tunaos.org/flatpak/index/static` failed its AppStream metadata check on the latest scheduled run.',
+                  '',
+                  'This repo serves nothing — the remote is served from [`tuna-os/docs`](https://github.com/tuna-os/docs). A failure usually means one of:',
+                  '',
+                  '- a corrupted or not-yet-propagated deploy in `tuna-os/docs`;',
+                  '- AppStream labels (screenshots, licence, categories) dropped from a published app;',
+                  '- the registry being unreachable (503 / timeout).',
+                  '',
+                  'Triage runbook: [AGENTS.md](https://github.com/tuna-os/flatpak-index/blob/main/AGENTS.md#triaging-a-check-metadata-failure).',
+                  '',
+                  '---',
+                  `Run: ${runUrl}`,
+                ].join('\n'),
+              });
+            }
