@@ -53,6 +53,20 @@ class CatalogTests(unittest.TestCase):
                         readme + "\n| Again | `flatpak install tuna-os org.example.One` |"]:
             self.assertTrue(check_readme(self.declaration, changed))
 
+    def test_invalid_or_duplicate_declarations_are_rejected(self):
+        app = {"name": "tuna-os/one", "ids": ["org.example.One"], "archs": ["amd64"]}
+        bad = {
+            "duplicate name": [app, dict(app)],
+            "empty ids": [{**app, "ids": []}],
+            "empty archs": [{**app, "archs": []}],
+        }
+        for label, apps in bad.items():
+            with self.subTest(label):
+                with self.assertRaises(ValueError):
+                    check_readme({"apps": apps}, "")
+                with self.assertRaises(ValueError):
+                    check_coverage({"apps": apps}, {"Results": []})
+
 
 class CatalogCommandTests(unittest.TestCase):
     def setUp(self):
@@ -92,3 +106,14 @@ class CatalogCommandTests(unittest.TestCase):
         failed, output = self.run_main("--index", str(index))
         self.assertTrue(failed)
         self.assertIn("tuna-os/one", output)
+
+    def test_a_readme_alone_is_enough_and_a_mismatch_fails(self):
+        readme = self.tmp / "README.md"
+        readme.write_text("## Available apps\n| One | `flatpak install tuna-os org.example.One` |")
+        failed, output = self.run_main("--readme", str(readme))
+        self.assertFalse(failed)
+        self.assertEqual(output, "")
+        readme.write_text("## Available apps\n")
+        failed, output = self.run_main("--readme", str(readme))
+        self.assertTrue(failed)
+        self.assertIn("org.example.One", output)

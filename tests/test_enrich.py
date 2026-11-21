@@ -3,7 +3,9 @@
 Covers enrich() merge logic, AppStream screenshot counting, and the CLI interface.
 """
 
+import contextlib
 import importlib.util
+import io
 import json
 import sys
 import tempfile
@@ -396,6 +398,36 @@ class EnrichIndexTests(unittest.TestCase):
                     self.assertEqual(res, 0)
         finally:
             tmp_path.unlink(missing_ok=True)
+
+    def test_main_prints_screenshot_warnings_without_failing(self):
+        catalogue = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<components version="0.8" origin="flatpak">'
+            '<component type="desktop-application"><id>org.tunaos.demo</id></component>'
+            '</components>'
+        )
+        labels = {
+            "org.freedesktop.appstream.appdata": catalogue,
+            "org.freedesktop.appstream.icon-64": "icon64",
+            "org.freedesktop.appstream.icon-128": "icon128",
+        }
+        index = {
+            "Registry": "https://ghcr.io",
+            "Results": [{"Name": "tuna-os/demo", "Images": [
+                {"Architecture": "amd64", "Digest": "sha256:" + "a" * 64, "Labels": dict(labels)}
+            ]}],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "index.json"
+            path.write_text(json.dumps(index))
+            stderr = io.StringIO()
+            with (patch.object(enrich_index.Registry, "image_labels", return_value=labels),
+                  patch("sys.argv", ["enrich-index.py", str(path), "--check"]),
+                  contextlib.redirect_stdout(io.StringIO()),
+                  contextlib.redirect_stderr(stderr)):
+                res = enrich_index.main()
+        self.assertEqual(res, 0)
+        self.assertIn("no <screenshots> declared", stderr.getvalue())
 
     def test_main_write_mode_and_check_failures(self):
         catalogue = (
