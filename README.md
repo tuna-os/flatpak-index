@@ -209,13 +209,15 @@ jobs:
           token: ${{ secrets.FLATPAK_INDEX_TOKEN }}
           path: index-repo
       - name: Update central index (tuna-os/docs)
+        # Pin to a full commit SHA of tuna-os/flatpak-index, never a branch.
+        uses: tuna-os/flatpak-index/.github/actions/update-flatpak-index@<full-commit-sha>
+        with:
+          oci-dir: <app>.oci
+          index-file: index-repo/static/flatpak/index/static
+          repo-name: tuna-os/<app>
+          tags: latest
+      - name: Commit central index
         run: |
-          python3 .github/scripts/update-index.py \
-            --oci-dir <app>.oci \
-            --index-file index-repo/static/flatpak/index/static \
-            --repo-name tuna-os/<app> \
-            --require-appstream \
-            --tags latest
           cd index-repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -228,17 +230,25 @@ jobs:
           fi
 ```
 
-Also vendor [`scripts/update-index.py`](scripts/update-index.py) from this repo
-to `.github/scripts/update-index.py`, or use the `update-flatpak-index` action
-from `tuna-os/.github` (`tuna-os/.github/actions/update-flatpak-index`). **Prefer
-the composite action.** Then your repository has no copy to update. Do not copy
-an older version from another app repository — see [App metadata](#app-metadata)
-for why.
+The one supported interface is the `update-flatpak-index` composite action in
+this repository:
+`tuna-os/flatpak-index/.github/actions/update-flatpak-index@<full-commit-sha>`.
+It runs [`scripts/update-index.py`](scripts/update-index.py) from the same
+commit, so there is no copy to keep in step. Pin it to a full commit SHA. The
+action only updates the local index file. Registry login, upload and the index
+commit stay in your workflow, with your credentials.
 
-This file is the canonical copy, and the action is a byte-identical copy of it.
-Each week, the drift check in `tuna-os/.github` compares the action and each
-vendored copy with this file. It fails on any difference. See
-[AGENTS.md](AGENTS.md#three-copies-of-one-script) for the history.
+An authorized maintainer cuts a release by pushing a tag named
+`publisher-vX.Y.Z` on a commit that is already on `main`. Consumers still pin
+the commit SHA that the tag points to. To roll back, change the pin to an
+earlier SHA.
+
+Do not vendor `scripts/update-index.py` into new repositories, and do not copy
+an older version from another app repository — see [App metadata](#app-metadata)
+for why. Existing consumers migrate by replacing the `python3 ...update-index.py`
+step with the action. The `tuna-os/.github` action is a byte-identical copy of
+the script, and the weekly drift check there still compares it and any vendored
+copy with this file. See [AGENTS.md](AGENTS.md#three-copies-of-one-script).
 
 ### 4. Set repo secrets
 
