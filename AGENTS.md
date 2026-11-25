@@ -86,7 +86,7 @@ ruff check .                               # config in ruff.toml
 ```
 
 > **CI enforces Ruff and the unittest suite.** `tests.yml` runs `ruff check .`,
-> the unittest suite, and capture-action self-tests. Run both commands locally
+> and the unittest suite. Run both commands locally
 > before opening a PR; keep `ruff check .` clean.
 
 `scripts/oci.py` holds the registry plumbing, `enrich-index.py` the validation

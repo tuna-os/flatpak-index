@@ -284,7 +284,7 @@ as a bare application ID with an "Unknown" licence and no screenshots.
   It follows [Flathub's quality guidelines](https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines),
   which sets the standard for software centres.
 - **Screenshots:** [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md). The shared
-  [capture action](.github/actions/capture-screenshots) takes pictures of an app
+  [capture action](https://github.com/tuna-os/.github/tree/5896bac69433b8a2483a45acb5f5d3ec8cd2a5e7/.github/actions/capture-screenshots) takes pictures of an app
   window under a headless X server. CI generates screenshots from the app directly
   instead of by hand. The audit below reports apps that declare none.
 - **Audit the live remote:**
