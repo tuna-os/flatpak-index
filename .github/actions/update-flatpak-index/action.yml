@@ -1,0 +1,55 @@
+name: "Update Flatpak index"
+description: >-
+  Add or replace one app's entry in a local OCI index file by running the
+  canonical scripts/update-index.py from this repository. The action only edits
+  the caller's local index file. Registry login, image upload and committing the
+  index stay with the caller.
+author: tuna-os
+
+inputs:
+  oci-dir:
+    description: Local OCI layout directory produced by `flatpak build-bundle --oci`
+    required: true
+  repo-name:
+    description: GHCR repository for the image, for example tuna-os/tavern
+    required: true
+  index-file:
+    description: Index file to update
+    required: false
+    default: index/static
+  registry:
+    description: Registry host
+    required: false
+    default: ghcr.io
+  tags:
+    description: Space-separated tags to record for the image
+    required: false
+    default: latest
+  require-appstream:
+    description: Set to "true" to fail when the image carries no AppStream metadata
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Run update-index.py
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        OCI_DIR: ${{ inputs.oci-dir }}
+        REPO_NAME: ${{ inputs.repo-name }}
+        INDEX_FILE: ${{ inputs.index-file }}
+        REGISTRY: ${{ inputs.registry }}
+        TAGS: ${{ inputs.tags }}
+        REQUIRE_APPSTREAM: ${{ inputs.require-appstream }}
+      run: |
+        set -euo pipefail
+        script="$ACTION_PATH/../../../scripts/update-index.py"
+        args=(--oci-dir "$OCI_DIR" --index-file "$INDEX_FILE" --repo-name "$REPO_NAME" --registry "$REGISTRY")
+        if [ "$REQUIRE_APPSTREAM" = "true" ]; then
+          args+=(--require-appstream)
+        fi
+        read -r -a tag_list <<< "$TAGS"
+        args+=(--tags "${tag_list[@]}")
+        python3 "$script" "${args[@]}"
